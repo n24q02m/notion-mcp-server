@@ -1,50 +1,45 @@
-import fs from 'node:fs'
-import path from 'node:path'
+/**
+ * Enhanced Notion MCP Server
+ * Using composite tools for human-friendly AI agent interactions
+ */
 
-import { OpenAPIV3 } from 'openapi-types'
-import OpenAPISchemaValidator from 'openapi-schema-validator'
+import { Server } from '@modelcontextprotocol/sdk/server/index.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { registerTools } from './tools/registry.js'
 
-import { MCPProxy } from './openapi-mcp-server/mcp/proxy'
+export async function initServer() {
+  // Get Notion token from environment
+  const notionToken = process.env.NOTION_TOKEN
 
-export class ValidationError extends Error {
-  constructor(public errors: any[]) {
-    super('OpenAPI validation failed')
-    this.name = 'ValidationError'
-  }
-}
-
-async function loadOpenApiSpec(specPath: string, baseUrl: string | undefined): Promise<OpenAPIV3.Document> {
-  let rawSpec: string
-
-  try {
-    rawSpec = fs.readFileSync(path.resolve(process.cwd(), specPath), 'utf-8')
-  } catch (error) {
-    console.error('Failed to read OpenAPI specification file:', (error as Error).message)
+  if (!notionToken) {
+    console.error('❌ NOTION_TOKEN environment variable is required')
+    console.error('💡 Get your token from https://www.notion.so/my-integrations')
     process.exit(1)
   }
 
-  // Parse and validate the OpenApi Spec
-  try {
-    const parsed = JSON.parse(rawSpec)
-
-    // Override baseUrl if specified.
-    if (baseUrl) {
-      parsed.servers[0].url = baseUrl
+  // Create MCP server
+  const server = new Server(
+    {
+      name: '@n24q02m/notion-mcp-enhanced',
+      version: '2.0.0'
+    },
+    {
+      capabilities: {
+        tools: {}
+      }
     }
+  )
 
-    return parsed as OpenAPIV3.Document
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      throw error
-    }
-    console.error('Failed to parse OpenAPI spec:', (error as Error).message)
-    process.exit(1)
-  }
-}
+  // Register composite tools
+  registerTools(server, notionToken)
 
-export async function initProxy(specPath: string, baseUrl: string |undefined) {
-  const openApiSpec = await loadOpenApiSpec(specPath, baseUrl)
-  const proxy = new MCPProxy('Notion API', openApiSpec)
+  // Connect stdio transport
+  const transport = new StdioServerTransport()
+  await server.connect(transport)
 
-  return proxy
+  console.error('✅ Notion MCP Enhanced Server started')
+  console.error('📦 13 composite tools registered')
+  console.error('🔗 Ready for AI agent connections')
+
+  return server
 }

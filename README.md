@@ -1,327 +1,378 @@
-# Notion MCP Server
+# Notion MCP Enhanced
 
-> [!NOTE] 
-> 
-> We’ve introduced **Notion MCP**, a remote MCP server with the following improvements:
-> - Easy installation via standard OAuth. No need to fiddle with JSON or API token anymore.
-> - Powerful tools tailored to AI agents. These tools are designed with optimized token consumption in mind.
-> 
-> Learn more and try it out [here](https://developers.notion.com/docs/mcp)
+**Composite MCP Server for Notion - Human-Like Workflows for AI Agents**
 
+[![npm version](https://badge.fury.io/js/%40n24q02m%2Fnotion-mcp-enhanced.svg)](https://www.npmjs.com/package/@n24q02m/notion-mcp-enhanced)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org)
 
-![notion-mcp-sm](https://github.com/user-attachments/assets/6c07003c-8455-4636-b298-d60ffdf46cd8)
+## 🎯 Design Philosophy
 
-This project implements an [MCP server](https://spec.modelcontextprotocol.io/) for the [Notion API](https://developers.notion.com/reference/intro). 
+This MCP server enables **AI agents to work with Notion using human-like workflows**:
 
-![mcp-demo](https://github.com/user-attachments/assets/e3ff90a7-7801-48a9-b807-f7dd47f0d3d6)
+1. **Composite Operations**: Complete tasks in single tool calls (e.g., create page with title + content + properties)
+2. **Markdown-First**: Natural language content format optimized for AI understanding
+3. **Auto-Pagination**: Transparent handling of large datasets
+4. **Bulk Operations**: Process multiple items efficiently in one request
 
-### Installation
+## ✨ Key Features
 
-#### 1. Setting up Integration in Notion:
-Go to [https://www.notion.so/profile/integrations](https://www.notion.so/profile/integrations) and create a new **internal** integration or select an existing one.
+- **13 Composite Tools**: Each tool completes a full workflow (pages, databases, workspace)
+- **Markdown Support**: Write and read Notion content in markdown format
+- **Auto-Pagination**: Automatically fetch all results without cursor management
+- **Bulk Operations**: Create/update/delete multiple items in single requests
+- **Simple Deployment**: npx one-liner or Docker container
 
-![Creating a Notion Integration token](docs/images/integrations-creation.png)
+## 🚀 Quick Start
 
-While we limit the scope of Notion API's exposed (for example, you will not be able to delete databases via MCP), there is a non-zero risk to workspace data by exposing it to LLMs. Security-conscious users may want to further configure the Integration's _Capabilities_. 
-
-For example, you can create a read-only integration token by giving only "Read content" access from the "Configuration" tab:
-
-![Notion Integration Token Capabilities showing Read content checked](docs/images/integrations-capabilities.png)
-
-#### 2. Connecting content to integration:
-Ensure relevant pages and databases are connected to your integration.
-
-To do this, visit the **Access** tab in your internal integration settings. Edit access and select the pages you'd like to use.
-![Integration Access tab](docs/images/integration-access.png)
-
-![Edit integration access](docs/images/page-access-edit.png)
-
-Alternatively, you can grant page access individually. You'll need to visit the target page, and click on the 3 dots, and select "Connect to integration". 
-
-![Adding Integration Token to Notion Connections](docs/images/connections.png)
-
-#### 3. Adding MCP config to your client:
-
-##### Using npm:
-
-**Cursor & Claude:**
-
-Add the following to your `.cursor/mcp.json` or `claude_desktop_config.json` (MacOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`)
-
-**Option 1: Using NOTION_TOKEN (recommended)**
-```javascript
-{
-  "mcpServers": {
-    "notionApi": {
-      "command": "npx",
-      "args": ["-y", "@notionhq/notion-mcp-server"],
-      "env": {
-        "NOTION_TOKEN": "ntn_****"
-      }
-    }
-  }
-}
-```
-
-**Option 2: Using OPENAPI_MCP_HEADERS (for advanced use cases)**
-```javascript
-{
-  "mcpServers": {
-    "notionApi": {
-      "command": "npx",
-      "args": ["-y", "@notionhq/notion-mcp-server"],
-      "env": {
-        "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"Bearer ntn_****\", \"Notion-Version\": \"2022-06-28\" }"
-      }
-    }
-  }
-}
-```
-
-**Zed**
-
-Add the following to your `settings.json`
+### NPX (No Installation Required)
 
 ```json
 {
-  "context_servers": {
-    "some-context-server": {
-      "command": {
-        "path": "npx",
-        "args": ["-y", "@notionhq/notion-mcp-server"],
-        "env": {
-          "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"Bearer ntn_****\", \"Notion-Version\": \"2022-06-28\" }"
-        }
-      },
-      "settings": {}
-    }
-  }
-}
-```
-
-##### Using Docker:
-
-There are two options for running the MCP server with Docker:
-
-###### Option 1: Using the official Docker Hub image:
-
-Add the following to your `.cursor/mcp.json` or `claude_desktop_config.json`:
-
-**Using NOTION_TOKEN (recommended):**
-```javascript
-{
   "mcpServers": {
-    "notionApi": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-e", "NOTION_TOKEN",
-        "mcp/notion"
-      ],
+    "notion": {
+      "command": "npx",
+      "args": ["@n24q02m/notion-mcp-enhanced"],
       "env": {
-        "NOTION_TOKEN": "ntn_****"
+        "NOTION_TOKEN": "your-notion-token-here"
       }
     }
   }
 }
 ```
 
-**Using OPENAPI_MCP_HEADERS (for advanced use cases):**
-```javascript
+### Docker
+
+```json
 {
   "mcpServers": {
-    "notionApi": {
+    "notion": {
       "command": "docker",
       "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-e", "OPENAPI_MCP_HEADERS",
-        "mcp/notion"
-      ],
+        "run", "--rm", "-i",
+        "-e", "NOTION_TOKEN=your-notion-token-here",
+        "n24q02m/notion-mcp:latest"
+      ]
+    }
+  }
+}
+```
+
+### NPM Global
+
+```bash
+npm install -g @n24q02m/notion-mcp-enhanced
+```
+
+```json
+{
+  "mcpServers": {
+    "notion": {
+      "command": "notion-mcp",
       "env": {
-        "OPENAPI_MCP_HEADERS": "{\"Authorization\":\"Bearer ntn_****\",\"Notion-Version\":\"2022-06-28\"}"
+        "NOTION_TOKEN": "your-notion-token-here"
       }
     }
   }
 }
 ```
 
-This approach:
-- Uses the official Docker Hub image
-- Properly handles JSON escaping via environment variables
-- Provides a more reliable configuration method
+## 🔑 Get Notion Token
 
-###### Option 2: Building the Docker image locally:
+1. Visit <https://www.notion.so/my-integrations>
+2. Click "New integration"
+3. Name it and select your workspace
+4. Copy the **Internal Integration Token**
+5. Share pages/databases with your integration
 
-You can also build and run the Docker image locally. First, build the Docker image:
+## 💡 Usage Examples
 
-```bash
-docker compose build
-```
+### Create Page with Content
 
-Then, add the following to your `.cursor/mcp.json` or `claude_desktop_config.json`:
-
-**Using NOTION_TOKEN (recommended):**
 ```javascript
-{
-  "mcpServers": {
-    "notionApi": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-e",
-        "NOTION_TOKEN=ntn_****",
-        "notion-mcp-server"
-      ]
-    }
-  }
-}
+pages_create({
+  title: "Meeting Notes - Q4 Planning",
+  content: `# Agenda
+
+- Budget review
+- Roadmap discussion
+
+## Action Items
+
+- [ ] Update projections
+- [ ] Schedule follow-up`,
+  icon: "📝",
+  parent_id: "database_id"
+})
 ```
 
-**Using OPENAPI_MCP_HEADERS (for advanced use cases):**
+Complete page creation in one call - title, content, and properties.
+
+### Bulk Database Updates
+
 ```javascript
-{
-  "mcpServers": {
-    "notionApi": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-e",
-        "OPENAPI_MCP_HEADERS={\"Authorization\": \"Bearer ntn_****\", \"Notion-Version\": \"2022-06-28\"}",
-        "notion-mcp-server"
-      ]
-    }
+databases_items({
+  database_id: "tasks_db",
+  action: "update",
+  items: [
+    { page_id: "1", properties: { Status: "Done" } },
+    { page_id: "2", properties: { Status: "In Progress" } },
+    { page_id: "3", properties: { Status: "Todo" } }
+  ]
+})
+```
+
+Update multiple database items in a single operation.
+
+## 🛠️ 13 Composite Tools
+
+Each tool is designed as a complete human workflow, not an atomic API operation.
+
+### Pages (4 tools)
+
+1. **`pages_create`** - Create page with content in one call
+   - Combines: create page + append blocks + set properties
+   - Input: title, markdown content, parent, icon, cover, properties
+   - Saves: 2-3 tool calls per page
+
+2. **`pages_edit`** - Update page with flexible content operations
+   - Supports: replace all content, append to end, prepend to start
+   - Combines: update properties + manage blocks
+   - Saves: 1-2 tool calls per edit
+
+3. **`pages_get`** - Retrieve full page as markdown
+   - Combines: get page + list all blocks + convert to markdown
+   - Auto-pagination for large pages
+   - Saves: 2+ tool calls for large pages
+
+4. **`pages_manage`** - Bulk page operations
+   - Actions: archive, restore, duplicate multiple pages
+   - Single call for batch operations
+   - Saves: N-1 calls for N pages
+
+### Databases (4 tools)
+
+5. **`databases_query`** - Smart query with auto-pagination
+   - Built-in smart search across all text properties
+   - Auto-pagination for unlimited results
+   - Returns formatted, AI-readable data
+
+6. **`databases_items`** - Bulk create/update/delete
+   - Process multiple items in one call
+   - Saves: N-1 calls for N items
+
+7. **`databases_schema`** - Get database structure
+   - Returns AI-friendly schema description
+   - Includes property types, options, formulas
+
+8. **`databases_create`** - Create database with schema
+   - Define all properties in one call
+
+### Workspace (5 tools)
+
+9. **`search_smart`** - Context-aware workspace search
+   - Intelligent ranking and filtering
+   - Auto-pagination
+
+10. **`comments_manage`** - List and create comments
+    - Unified interface for all comment operations
+
+11. **`workspace_explore`** - Navigate recent/shared content
+    - Quick access to workspace overview
+
+12. **`workspace_info`** - Bot and workspace information
+
+13. **`content_convert`** - Markdown ↔ Notion blocks
+    - Bidirectional conversion utility
+
+## 🎨 Real-World Use Cases
+
+### Automated Meeting Notes
+
+```javascript
+pages_create({
+  title: "Team Sync - Dec 1",
+  content: `# Agenda
+- Sprint review
+- Next sprint planning
+
+## Attendees
+- Alice, Bob, Carol
+
+## Notes
+(To be filled)`,
+  parent_id: "meetings_db",
+  properties: {
+    "Date": "2024-12-01",
+    "Type": "Team Sync"
   }
-}
+})
 ```
 
-Don't forget to replace `ntn_****` with your integration secret. Find it from your integration configuration tab:
+Create complete meeting notes page with agenda, structure, and properties in one call.
 
-![Copying your Integration token from the Configuration tab in the developer portal](https://github.com/user-attachments/assets/67b44536-5333-49fa-809c-59581bf5370a)
+### Bulk Task Import
 
+```javascript
+databases_items({
+  database_id: "tasks_db",
+  action: "create",
+  items: csvData.map(row => ({
+    properties: {
+      "Task": row.name,
+      "Priority": row.priority,
+      "Assignee": row.assignee,
+      "Due Date": row.due
+    }
+  }))
+})
+```
 
-#### Installing via Smithery
+Import multiple tasks from external data sources efficiently.
 
-[![smithery badge](https://smithery.ai/badge/@makenotion/notion-mcp-server)](https://smithery.ai/server/@makenotion/notion-mcp-server)
+### Smart Workspace Search
 
-To install Notion API Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@makenotion/notion-mcp-server):
+```javascript
+search_smart({
+  query: "Q4 roadmap",
+  filter: { object: "page" },
+  sort: {
+    direction: "descending",
+    timestamp: "last_edited_time"
+  }
+})
+```
+
+Search across workspace with automatic pagination for all results.
+
+## 🔧 Development
+
+### Prerequisites
+
+- Node.js 22+ (uses native fetch)
+- npm 7+
+- Notion Integration with appropriate permissions
+
+### Build from Source
 
 ```bash
-npx -y @smithery/cli install @makenotion/notion-mcp-server --client claude
-```
-
-### Transport Options
-
-The Notion MCP Server supports two transport modes:
-
-#### STDIO Transport (Default)
-The default transport mode uses standard input/output for communication. This is the standard MCP transport used by most clients like Claude Desktop.
-
-```bash
-# Run with default stdio transport
-npx @notionhq/notion-mcp-server
-
-# Or explicitly specify stdio
-npx @notionhq/notion-mcp-server --transport stdio
-```
-
-#### Streamable HTTP Transport
-For web-based applications or clients that prefer HTTP communication, you can use the Streamable HTTP transport:
-
-```bash
-# Run with Streamable HTTP transport on port 3000 (default)
-npx @notionhq/notion-mcp-server --transport http
-
-# Run on a custom port
-npx @notionhq/notion-mcp-server --transport http --port 8080
-
-# Run with a custom authentication token
-npx @notionhq/notion-mcp-server --transport http --auth-token "your-secret-token"
-```
-
-When using Streamable HTTP transport, the server will be available at `http://0.0.0.0:<port>/mcp`.
-
-##### Authentication
-The Streamable HTTP transport requires bearer token authentication for security. You have three options:
-
-**Option 1: Auto-generated token (recommended for development)**
-```bash
-npx @notionhq/notion-mcp-server --transport http
-```
-The server will generate a secure random token and display it in the console:
-```
-Generated auth token: a1b2c3d4e5f6789abcdef0123456789abcdef0123456789abcdef0123456789ab
-Use this token in the Authorization header: Bearer a1b2c3d4e5f6789abcdef0123456789abcdef0123456789abcdef0123456789ab
-```
-
-**Option 2: Custom token via command line (recommended for production)**
-```bash
-npx @notionhq/notion-mcp-server --transport http --auth-token "your-secret-token"
-```
-
-**Option 3: Custom token via environment variable (recommended for production)**
-```bash
-AUTH_TOKEN="your-secret-token" npx @notionhq/notion-mcp-server --transport http
-```
-
-The command line argument `--auth-token` takes precedence over the `AUTH_TOKEN` environment variable if both are provided.
-
-##### Making HTTP Requests
-All requests to the Streamable HTTP transport must include the bearer token in the Authorization header:
-
-```bash
-# Example request
-curl -H "Authorization: Bearer your-token-here" \
-     -H "Content-Type: application/json" \
-     -H "mcp-session-id: your-session-id" \
-     -d '{"jsonrpc": "2.0", "method": "initialize", "params": {}, "id": 1}' \
-     http://localhost:3000/mcp
-```
-
-**Note:** Make sure to set either the `NOTION_TOKEN` environment variable (recommended) or the `OPENAPI_MCP_HEADERS` environment variable with your Notion integration token when using either transport mode.
-
-### Examples
-
-1. Using the following instruction
-```
-Comment "Hello MCP" on page "Getting started"
-```
-
-AI will correctly plan two API calls, `v1/search` and `v1/comments`, to achieve the task
-
-2. Similarly, the following instruction will result in a new page named "Notion MCP" added to parent page "Development"
-```
-Add a page titled "Notion MCP" to page "Development"
-```
-
-3. You may also reference content ID directly
-```
-Get the content of page 1a6b35e6e67f802fa7e1d27686f017f2
-```
-
-### Development
-
-Build
-
-```
+git clone https://github.com/n24q02m/notion-mcp-server
+cd notion-mcp-server
+npm install
 npm run build
 ```
 
-Execute
+### Local Development
+
+```bash
+# Run with your Notion token
+NOTION_API_KEY=secret_xxx npm run start
+
+# Or use environment variable
+export NOTION_API_KEY=secret_xxx
+npm run start
+```
+
+### Docker Development
+
+```bash
+# Build image
+docker build -t notion-mcp-enhanced .
+
+# Run container
+docker run -e NOTION_API_KEY=secret_xxx notion-mcp-enhanced
+```
+
+### Architecture
 
 ```
-npx -y --prefix /path/to/local/notion-mcp-server @notionhq/notion-mcp-server
+notion-mcp-enhanced/
+├── src/
+│   ├── init-server.ts          # MCP server initialization
+│   └── tools/
+│       ├── registry.ts         # Central tool registration
+│       ├── composite/          # 13 composite tools (6 files)
+│       │   ├── pages.ts        # 4 page tools
+│       │   ├── databases.ts    # 4 database tools
+│       │   └── workspace.ts    # 5 workspace tools
+│       └── helpers/            # Shared utilities
+│           ├── markdown.ts     # Markdown ↔ Blocks conversion
+│           ├── pagination.ts   # Auto-pagination wrapper
+│           ├── richtext.ts     # Rich text formatting
+│           └── errors.ts       # AI-friendly error messages
+├── scripts/
+│   ├── start-server.ts         # Entry point
+│   └── build-cli.js            # CLI build config
+└── tests/
+    └── test-composite-tools.js # Tool verification
 ```
 
-Publish
+### Testing
 
+```bash
+# Verify all 13 tools registered correctly
+npm test
+
+# Manual testing with Claude Desktop
+# Add to ~/.config/Claude/claude_desktop_config.json:
+{
+  "mcpServers": {
+    "notion": {
+      "command": "npx",
+      "args": ["-y", "@n24q02m/notion-mcp-enhanced"],
+      "env": {
+        "NOTION_API_KEY": "secret_xxx"
+      }
+    }
+  }
+}
 ```
-npm publish --access public
-```
+
+## 📝 Changelog
+
+### v1.0.0 - Initial Release
+
+**Features:**
+- ✨ 13 composite tools for pages, databases, and workspace operations
+- 📝 Built-in Markdown ↔ Notion blocks conversion
+- 🔄 Automatic pagination for unlimited results
+- 🚀 Simple deployment via npx or Docker
+- ⚡ Node.js 22+ with native fetch support
+
+## 🤝 Contributing
+
+Contributions welcome!
+
+**Priority Areas:**
+- **New Composite Tools**: Identify common workflows that could be simplified
+- **Markdown Features**: Improve conversion accuracy (tables, callouts, databases, etc.)
+- **Error Handling**: Enhance error messages for better AI understanding
+- **Documentation**: Examples, use cases, and guides
+
+**Contribution Process:**
+1. Fork repository
+2. Create feature branch (`git checkout -b feature/new-tool`)
+3. Test with real Notion workspace
+4. Add tests for new functionality
+5. Submit PR with clear description
+
+## 📄 License
+
+MIT License - See [LICENSE](LICENSE)
+
+## 🙏 Acknowledgments
+
+- **Built With**:
+  - [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/sdk) - MCP framework
+  - [@notionhq/client](https://github.com/makenotion/notion-sdk-js) - Official Notion SDK
+
+## 🔗 Links
+
+- [npm Package](https://www.npmjs.com/package/@n24q02m/notion-mcp-enhanced)
+- [GitHub Repository](https://github.com/n24q02m/notion-mcp-server)
+- [Notion API Documentation](https://developers.notion.com)
+- [Model Context Protocol](https://modelcontextprotocol.io)
+
+---
+
+**Composite MCP Server - Human Workflows for AI Agents**
