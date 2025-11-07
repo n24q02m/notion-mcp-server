@@ -26,11 +26,8 @@ export function convertToNotionProperties(
       if (key === 'Name' || key === 'Title' || key.toLowerCase() === 'title') {
         converted[key] = { title: [RichText.text(value)] }
       }
-      // Status property (common in databases)
-      else if (key === 'Status' || key.toLowerCase() === 'status') {
-        converted[key] = { status: { name: value } }
-      }
-      // Default to select for other strings
+      // All other strings default to select
+      // Note: User can override by passing Notion format directly
       else {
         converted[key] = { select: { name: value } }
       }

@@ -32,7 +32,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 
 ## 🚀 Quick Start
 
-### NPX (No Installation Required)
+### NPX
 
 ```json
 {
@@ -60,25 +60,6 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
         "-e", "NOTION_TOKEN=your-notion-token-here",
         "n24q02m/better-notion-mcp:latest"
       ]
-    }
-  }
-}
-```
-
-### NPM Global
-
-```bash
-npm install -g @n24q02m/better-notion-mcp
-```
-
-```json
-{
-  "mcpServers": {
-    "notion": {
-      "command": "better-notion-mcp",
-      "env": {
-        "NOTION_TOKEN": "your-notion-token-here"
-      }
     }
   }
 }

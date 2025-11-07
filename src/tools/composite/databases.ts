@@ -129,19 +129,21 @@ async function getDatabase(notion: Client, input: DatabasesInput): Promise<any> 
 
   // Format properties for AI-friendly output
   const schema: any = {}
-  for (const [name, prop] of Object.entries(database.properties)) {
-    const p = prop as any
-    schema[name] = {
-      type: p.type,
-      id: p.id
-    }
+  if (database.properties) {
+    for (const [name, prop] of Object.entries(database.properties)) {
+      const p = prop as any
+      schema[name] = {
+        type: p.type,
+        id: p.id
+      }
 
-    if (p.type === 'select' && p.select?.options) {
-      schema[name].options = p.select.options.map((o: any) => o.name)
-    } else if (p.type === 'multi_select' && p.multi_select?.options) {
-      schema[name].options = p.multi_select.options.map((o: any) => o.name)
-    } else if (p.type === 'formula' && p.formula) {
-      schema[name].expression = p.formula.expression
+      if (p.type === 'select' && p.select?.options) {
+        schema[name].options = p.select.options.map((o: any) => o.name)
+      } else if (p.type === 'multi_select' && p.multi_select?.options) {
+        schema[name].options = p.multi_select.options.map((o: any) => o.name)
+      } else if (p.type === 'formula' && p.formula) {
+        schema[name].expression = p.formula.expression
+      }
     }
   }
 
@@ -197,11 +199,18 @@ async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any
 
   // Fetch with pagination
   const allResults = await autoPaginate(
-    (cursor) => (notion.databases as any).query({
-      ...queryParams,
-      start_cursor: cursor,
-      page_size: 100
-    })
+    async (cursor) => {
+      const response: any = await (notion.databases as any).query({
+        ...queryParams,
+        start_cursor: cursor,
+        page_size: 100
+      })
+      return {
+        results: response.results,
+        next_cursor: response.next_cursor,
+        has_more: response.has_more
+      }
+    }
   )
 
   // Limit results if specified

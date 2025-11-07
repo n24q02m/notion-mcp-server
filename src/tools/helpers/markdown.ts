@@ -249,12 +249,18 @@ export function parseRichText(text: string): RichText[] {
  * Convert rich text array to plain markdown
  */
 function richTextToMarkdown(richText: RichText[]): string {
+  if (!richText || !Array.isArray(richText)) return ''
+
   return richText.map(rt => {
-    let text = rt.text.content
-    if (rt.annotations.bold) text = `**${text}**`
-    if (rt.annotations.italic) text = `*${text}*`
-    if (rt.annotations.code) text = `\`${text}\``
-    if (rt.annotations.strikethrough) text = `~~${text}~~`
+    if (!rt || !rt.text) return ''
+
+    let text = rt.text.content || ''
+    const annotations = rt.annotations || {}
+
+    if (annotations.bold) text = `**${text}**`
+    if (annotations.italic) text = `*${text}*`
+    if (annotations.code) text = `\`${text}\``
+    if (annotations.strikethrough) text = `~~${text}~~`
     if (rt.text.link) text = `[${text}](${rt.text.link.url})`
     return text
   }).join('')
