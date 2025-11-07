@@ -1,125 +1,109 @@
 /**
- * Workspace Composite Tool
- * Navigate recent and shared content
+ * Workspace Mega Tool
+ * Workspace exploration and info
  */
 
 import { Client } from '@notionhq/client'
-import { withErrorHandling } from '../helpers/errors.js'
-import * as RichText from '../helpers/richtext.js'
+import { NotionMCPError, withErrorHandling } from '../helpers/errors.js'
+import { autoPaginate } from '../helpers/pagination.js'
 
-export interface WorkspaceExploreInput {
-  view: 'recent' | 'shared' | 'all'
+export interface WorkspaceInput {
+  action: 'info' | 'search'
+
+  // Search params
+  query?: string
   filter?: {
     object?: 'page' | 'database'
+    property?: string
+    value?: any
+  }
+  sort?: {
+    direction?: 'ascending' | 'descending'
+    timestamp?: 'last_edited_time' | 'created_time'
   }
   limit?: number
 }
 
 /**
- * Explore workspace content
+ * Unified workspace tool
+ * Maps to: GET /v1/users/me and POST /v1/search
  */
-export async function workspaceExplore(
+export async function workspace(
   notion: Client,
-  input: WorkspaceExploreInput
+  input: WorkspaceInput
 ): Promise<any> {
   return withErrorHandling(async () => {
-    const searchParams: any = {
-      query: '',
-      page_size: Math.min(input.limit || 100, 100),
-      sort: {
-        direction: 'descending',
-        timestamp: 'last_edited_time'
-      }
-    }
+    switch (input.action) {
+      case 'info': {
+        const botUser = await notion.users.retrieve({ user_id: 'me' })
 
-    if (input.filter) {
-      searchParams.filter = input.filter
-    }
-
-    const response = await notion.search(searchParams)
-
-    const results = response.results.map((item: any) => {
-      const common = {
-        id: item.id,
-        url: item.url,
-        created_time: item.created_time,
-        last_edited_time: item.last_edited_time,
-        archived: item.archived
-      }
-
-      if (item.object === 'page') {
         return {
-          ...common,
-          type: 'page',
-          title: extractTitle(item),
-          parent: formatParent(item.parent)
-        }
-      } else if (item.object === 'database') {
-        return {
-          ...common,
-          type: 'database',
-          title: extractDatabaseTitle(item)
+          action: 'info',
+          bot: {
+            id: (botUser as any).id,
+            name: (botUser as any).name || 'Bot',
+            type: (botUser as any).type,
+            owner: (botUser as any).bot?.owner
+          }
         }
       }
 
-      return common
-    })
+      case 'search': {
+        if (!input.query) {
+          throw new NotionMCPError('query required for search action', 'VALIDATION_ERROR', 'Provide search query')
+        }
 
-    return {
-      view: input.view,
-      total_results: results.length,
-      results
+        const searchParams: any = {
+          query: input.query
+        }
+
+        if (input.filter?.object) {
+          searchParams.filter = {
+            value: input.filter.object,
+            property: 'object'
+          }
+        }
+
+        if (input.sort) {
+          searchParams.sort = {
+            direction: input.sort.direction || 'descending',
+            timestamp: input.sort.timestamp || 'last_edited_time'
+          }
+        }
+
+        // Fetch results with pagination
+        const allResults = await autoPaginate(
+          (cursor) => notion.search({
+            ...searchParams,
+            start_cursor: cursor,
+            page_size: 100
+          })
+        )
+
+        const results = input.limit ? allResults.slice(0, input.limit) : allResults
+
+        return {
+          action: 'search',
+          query: input.query,
+          total: results.length,
+          results: results.map((item: any) => ({
+            id: item.id,
+            object: item.object,
+            title: item.object === 'page'
+              ? (item.properties?.title?.title?.[0]?.plain_text || item.properties?.Name?.title?.[0]?.plain_text || 'Untitled')
+              : (item.title?.[0]?.plain_text || 'Untitled'),
+            url: item.url,
+            last_edited_time: item.last_edited_time
+          }))
+        }
+      }
+
+      default:
+        throw new NotionMCPError(
+          `Unknown action: ${input.action}`,
+          'VALIDATION_ERROR',
+          'Supported actions: info, search'
+        )
     }
   })()
-}
-
-/**
- * Get workspace information
- */
-export async function workspaceInfo(
-  notion: Client
-): Promise<any> {
-  return withErrorHandling(async () => {
-    // Get bot user info
-    const botInfo = await (notion.users as any).me()
-
-    return {
-      bot_id: botInfo.id,
-      bot_name: botInfo.name,
-      owner_type: botInfo.owner?.type,
-      workspace_name: botInfo.owner?.workspace ? 'true' : 'false'
-    }
-  })()
-}
-
-function extractTitle(page: any): string {
-  if (!page.properties) return 'Untitled'
-
-  const titleProp = Object.values(page.properties).find(
-    (prop: any) => prop.type === 'title'
-  ) as any
-
-  if (titleProp && titleProp.title && titleProp.title.length > 0) {
-    return RichText.extractPlainText(titleProp.title)
-  }
-
-  return 'Untitled'
-}
-
-function extractDatabaseTitle(database: any): string {
-  if (database.title && database.title.length > 0) {
-    return RichText.extractPlainText(database.title)
-  }
-  return 'Untitled Database'
-}
-
-function formatParent(parent: any): any {
-  if (parent.type === 'workspace') {
-    return { type: 'workspace' }
-  } else if (parent.type === 'page_id') {
-    return { type: 'page', id: parent.page_id }
-  } else if (parent.type === 'database_id') {
-    return { type: 'database', id: parent.database_id }
-  }
-  return parent
 }

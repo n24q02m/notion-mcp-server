@@ -8,20 +8,27 @@
 
 ## 🎯 Design Philosophy
 
-This MCP server enables **AI agents to work with Notion using human-like workflows**:
+**Mission**: Enable AI agents to work with Notion using **human-like workflows** while maintaining **near-complete API coverage** with **minimal tools and token usage**.
 
-1. **Composite Operations**: Complete tasks in single tool calls (e.g., create page with title + content + properties)
+This MCP server transforms Notion's 28+ atomic REST API endpoints into **8 mega action-based tools** that mirror how humans actually work with Notion:
+
+1. **Action-Based Design**: Each tool supports multiple related actions (e.g., pages tool: create, get, update, archive)
 2. **Markdown-First**: Natural language content format optimized for AI understanding
 3. **Auto-Pagination**: Transparent handling of large datasets
 4. **Bulk Operations**: Process multiple items efficiently in one request
+5. **Safe-by-Default**: Only safe operations exposed (no risky schema updates)
+
+**Coverage**: 75% of Official Notion API endpoints (21/28), focusing on 100% of common workflows while excluding risky/advanced operations.
 
 ## ✨ Key Features
 
-- **13 Composite Tools**: Each tool completes a full workflow (pages, databases, workspace)
+- **8 Mega Tools**: 75% Official API coverage (21/28 endpoints) with safe operations only
+- **25+ Actions**: Multiple actions per tool for comprehensive functionality
 - **Markdown Support**: Write and read Notion content in markdown format
 - **Auto-Pagination**: Automatically fetch all results without cursor management
 - **Bulk Operations**: Create/update/delete multiple items in single requests
 - **Simple Deployment**: npx one-liner or Docker container
+- **Safe-by-Default**: Risky operations (database schema updates) intentionally excluded
 
 ## 🚀 Quick Start
 
@@ -85,69 +92,95 @@ npm install -g @n24q02m/better-notion-mcp
 4. Copy the **Internal Integration Token**
 5. Share pages/databases with your integration
 
-## 🛠️ 13 Composite Tools
+## 🛠️ 8 Mega Action-Based Tools
 
-Each tool is designed as a complete human workflow, not an atomic API operation.
+Each tool supports multiple actions, mapping to 21+ Official Notion API endpoints.
 
-### Pages (4 tools)
+### 1. **`pages`** - Complete page lifecycle (6 actions → 5 API endpoints)
 
-1. **`pages_create`** - Create page with content in one call
-   - Combines: create page + append blocks + set properties
-   - Input: title, markdown content, parent, icon, cover, properties
-   - Saves: 2-3 tool calls per page
+**Actions**: `create`, `get`, `update`, `archive`, `restore`, `duplicate`
 
-2. **`pages_edit`** - Update page with flexible content operations
-   - Supports: replace all content, append to end, prepend to start
-   - Combines: update properties + manage blocks
-   - Saves: 1-2 tool calls per edit
+- **create**: Create page with title + markdown content + properties in one call
+  - Maps to: `POST /v1/pages` + `PATCH /v1/blocks/{id}/children`
+  - Example: `{action: "create", title: "My Page", parent_id: "xxx", content: "# Hello\nMarkdown here"}`
 
-3. **`pages_get`** - Retrieve full page as markdown
-   - Combines: get page + list all blocks + convert to markdown
-   - Auto-pagination for large pages
-   - Saves: 2+ tool calls for large pages
+- **get**: Retrieve full page as markdown with all properties
+  - Maps to: `GET /v1/pages/{id}` + `GET /v1/blocks/{id}/children`
+  - Example: `{action: "get", page_id: "xxx"}`
 
-4. **`pages_manage`** - Bulk page operations
-   - Actions: archive, restore, duplicate multiple pages
-   - Single call for batch operations
-   - Saves: N-1 calls for N pages
+- **update**: Update title, properties, and/or content (replace/append/prepend)
+  - Maps to: `PATCH /v1/pages/{id}` + `PATCH /v1/blocks/{id}/children`
+  - Example: `{action: "update", page_id: "xxx", title: "New Title", append_content: "\n## New section"}`
 
-### Databases (4 tools)
+- **archive/restore**: Bulk archive or restore multiple pages
+  - Maps to: Multiple `PATCH /v1/pages/{id}` calls
+  - Example: `{action: "archive", page_ids: ["xxx", "yyy"]}`
 
-5. **`databases_query`** - Smart query with auto-pagination
-   - Built-in smart search across all text properties
-   - Auto-pagination for unlimited results
-   - Returns formatted, AI-readable data
+- **duplicate**: Duplicate a page with all content
+  - Example: `{action: "duplicate", page_id: "xxx"}`
 
-6. **`databases_items`** - Bulk create/update/delete
-   - Process multiple items in one call
-   - Saves: N-1 calls for N items
+### 2. **`databases`** - Database management (6 actions → 3 API endpoints)
 
-7. **`databases_schema`** - Get database structure
-   - Returns AI-friendly schema description
-   - Includes property types, options, formulas
+**Actions**: `create`, `get`, `query`, `create_page`, `update_page`, `delete_page`
 
-8. **`databases_create`** - Create database with schema
-   - Define all properties in one call
+- **create**: Create database with full schema definition
+  - Maps to: `POST /v1/databases`
+  - Example: `{action: "create", parent_id: "xxx", title: "Tasks", properties: {Status: {select: {...}}}}`
 
-### Workspace (5 tools)
+- **get**: Retrieve database schema and structure
+  - Maps to: `GET /v1/databases/{id}`
+  - Example: `{action: "get", database_id: "xxx"}`
 
-9. **`search_smart`** - Context-aware workspace search
-   - Intelligent ranking and filtering
-   - Auto-pagination
+- **query**: Query database with filters/sorts + smart search
+  - Maps to: `POST /v1/databases/{id}/query`
+  - Example: `{action: "query", database_id: "xxx", search: "project", limit: 10}`
 
-10. **`comments_manage`** - Unified comment operations
-    - List all comments with auto-pagination and metadata
-    - Create new comments with plain text (no rich_text array needed)
-    - Reply to comment threads using discussion_id
-    - Simpler than Official MCP: string input vs rich_text array
+- **create_page/update_page/delete_page**: Bulk operations on database items
+  - Maps to: `POST/PATCH /v1/pages` (database items are pages)
+  - Example: `{action: "create_page", database_id: "xxx", pages: [{properties: {...}}]}`
 
-11. **`workspace_explore`** - Navigate recent/shared content
-    - Quick access to workspace overview
+### 3. **`blocks`** - Granular block editing (5 actions → 5 API endpoints)
 
-12. **`workspace_info`** - Bot and workspace information
+**Actions**: `get`, `children`, `append`, `update`, `delete`
 
-13. **`content_convert`** - Markdown ↔ Notion blocks
-    - Bidirectional conversion utility
+- Maps to: `GET/PATCH/DELETE /v1/blocks/{id}` + `GET/PATCH /v1/blocks/{id}/children`
+- Example: `{action: "append", block_id: "xxx", content: "## New section\nContent here"}`
+
+### 4. **`users`** - User management (3 actions → 3 API endpoints)
+
+**Actions**: `list`, `get`, `me`
+
+- Maps to: `GET /v1/users`, `GET /v1/users/{id}`, `GET /v1/users/me`
+- Example: `{action: "list"}` or `{action: "get", user_id: "xxx"}` or `{action: "me"}`
+
+### 5. **`workspace`** - Workspace operations (2 actions → 2 API endpoints)
+
+**Actions**: `info`, `search`
+
+- **info**: Get bot and workspace information
+  - Maps to: `GET /v1/users/me`
+  - Example: `{action: "info"}`
+
+- **search**: Smart workspace-wide search with filters
+  - Maps to: `POST /v1/search`
+  - Example: `{action: "search", query: "project", filter: {object: "page"}, limit: 10}`
+
+### 6. **`comments`** - Comment operations (2 actions → 2 API endpoints)
+
+**Actions**: `list`, `create`
+
+- Maps to: `GET /v1/comments`, `POST /v1/comments`
+- Example: `{action: "list", page_id: "xxx"}` or `{action: "create", page_id: "xxx", content: "Great!"}`
+
+### 7. **`content_convert`** - Markdown ↔ Notion blocks utility
+
+**Utility tool** for converting between formats (not a direct API call)
+
+- Example: `{direction: "markdown-to-blocks", content: "# Hello\nWorld"}`
+
+---
+
+**Total Coverage**: 8 tools with 25+ actions covering 21/28 Official API endpoints (75%)
 
 ## 🔧 Development
 
@@ -189,7 +222,7 @@ docker run -e NOTION_API_KEY=secret_xxx better-notion-mcp
 
 ### Architecture
 
-```
+```text
 better-notion-mcp/
 ├── src/
 │   ├── init-server.ts          # MCP server initialization
@@ -231,34 +264,6 @@ npm test
   }
 }
 ```
-
-## 📝 Changelog
-
-### v1.0.0 - Initial Release
-
-**Features:**
-- ✨ 13 composite tools for pages, databases, and workspace operations
-- 📝 Built-in Markdown ↔ Notion blocks conversion
-- 🔄 Automatic pagination for unlimited results
-- 🚀 Simple deployment via npx or Docker
-- ⚡ Node.js 22+ with native fetch support
-
-## 🤝 Contributing
-
-Contributions welcome!
-
-**Priority Areas:**
-- **New Composite Tools**: Identify common workflows that could be simplified
-- **Markdown Features**: Improve conversion accuracy (tables, callouts, databases, etc.)
-- **Error Handling**: Enhance error messages for better AI understanding
-- **Documentation**: Examples, use cases, and guides
-
-**Contribution Process:**
-1. Fork repository
-2. Create feature branch (`git checkout -b feature/new-tool`)
-3. Test with real Notion workspace
-4. Add tests for new functionality
-5. Submit PR with clear description
 
 ## 📄 License
 

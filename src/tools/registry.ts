@@ -1,218 +1,192 @@
 /**
- * Tool Registry
- * Central registration for all composite tools
+ * Tool Registry - 8 Mega Tools
+ * Consolidated registration for maximum coverage with minimal tools
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 import { Client } from '@notionhq/client'
 
-// Import composite tools
+// Import mega tools
+import { blocks } from './composite/blocks.js'
 import { commentsManage } from './composite/comments.js'
 import { contentConvert } from './composite/content.js'
-import { databasesCreate, databasesItems, databasesQuery, databasesSchema } from './composite/databases.js'
-import { pagesCreate, pagesEdit, pagesGet, pagesManage } from './composite/pages.js'
-import { searchSmart } from './composite/search.js'
-import { workspaceExplore, workspaceInfo } from './composite/workspace.js'
+import { databases } from './composite/databases.js'
+import { pages } from './composite/pages.js'
+import { users } from './composite/users.js'
+import { workspace } from './composite/workspace.js'
 import { NotionMCPError, aiReadableMessage } from './helpers/errors.js'
 
 /**
- * Tool definitions with enhanced descriptions
+ * 8 Mega Tools covering 75% of Official Notion API
  */
 const TOOLS = [
   {
-    name: 'pages_create',
-    description: `Create page with markdown content. Auto-converts simple property values to Notion format.
-Examples: 
-- Database page: {title: "My Story", parent_id: "db-id", properties: {Status: "Active", Tags: ["Action", "Fantasy"]}}
-- Subpage: {title: "Meeting Notes", parent_id: "page-id", content: "# Notes\\n- Point 1"}
-- With content: {title: "Tasks", parent_id: "db-id", content: "# TODO\\n- Item 1", properties: {Priority: "High"}}
+    name: 'pages',
+    description: `All page operations in one tool. Actions: create, get, update, archive, restore, duplicate.
 
-Note: Integration tokens cannot create workspace-level pages. Always provide parent_id.`,
+Maps to: POST/GET/PATCH /v1/pages + GET/PATCH /v1/blocks/{id}/children
+
+Examples:
+- Create: {action: "create", title: "My Page", parent_id: "xxx", content: "# Hello\\nMarkdown content"}
+- Get: {action: "get", page_id: "xxx"}
+- Update: {action: "update", page_id: "xxx", title: "New Title", append_content: "\\n## New section"}
+- Archive: {action: "archive", page_id: "xxx"}
+- Duplicate: {action: "duplicate", page_id: "xxx"}`,
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['create', 'get', 'update', 'archive', 'restore', 'duplicate'],
+          description: 'Action to perform'
+        },
+        page_id: { type: 'string', description: 'Page ID (required for most actions)' },
+        page_ids: { type: 'array', items: { type: 'string' }, description: 'Multiple page IDs for batch operations' },
         title: { type: 'string', description: 'Page title' },
-        content: { type: 'string', description: 'Page content in Markdown format (optional)' },
-        parent_id: { type: 'string', description: 'Parent page or database ID (required - integration tokens cannot create workspace pages)' },
-        icon: { type: 'string', description: 'Emoji icon (optional)' },
-        cover: { type: 'string', description: 'Cover image URL (optional)' },
-        properties: { type: 'object', description: 'Database properties in simple format: {Status: "Active", Tags: ["tag1", "tag2"]} (optional)' }
+        content: { type: 'string', description: 'Markdown content' },
+        append_content: { type: 'string', description: 'Markdown to append' },
+        prepend_content: { type: 'string', description: 'Markdown to prepend' },
+        parent_id: { type: 'string', description: 'Parent page or database ID' },
+        properties: { type: 'object', description: 'Page properties (for database pages)' },
+        icon: { type: 'string', description: 'Emoji icon' },
+        cover: { type: 'string', description: 'Cover image URL' },
+        archived: { type: 'boolean', description: 'Archive status' }
       },
-      required: ['title', 'parent_id']
+      required: ['action']
     }
   },
   {
-    name: 'pages_edit',
-    description: `Edit page content/properties. Supports replace/append/prepend.
-Examples:
-- Update title: {page_id: "xxx", title: "New Title"}
-- Replace content: {page_id: "xxx", content: "# New content"}
-- Append: {page_id: "xxx", append_content: "\n## New section"}
-- Update properties: {page_id: "xxx", properties: {Status: "Done"}}`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        page_id: { type: 'string', description: 'Page ID to edit' },
-        title: { type: 'string', description: 'New title (optional)' },
-        content: { type: 'string', description: 'New content in Markdown - replaces existing (optional)' },
-        append_content: { type: 'string', description: 'Content to append to end in Markdown (optional)' },
-        prepend_content: { type: 'string', description: 'Content to prepend to start in Markdown (optional)' },
-        properties: { type: 'object', description: 'Updated properties (optional)' },
-        icon: { type: 'string', description: 'New emoji icon (optional)' },
-        cover: { type: 'string', description: 'New cover image URL (optional)' },
-        archived: { type: 'boolean', description: 'Archive status (optional)' }
-      },
-      required: ['page_id']
-    }
-  },
-  {
-    name: 'pages_get',
-    description: 'Get page with full content as markdown, including all properties and metadata.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        page_id: { type: 'string', description: 'Page ID to retrieve' }
-      },
-      required: ['page_id']
-    }
-  },
-  {
-    name: 'pages_manage',
-    description: 'Bulk manage multiple pages: archive, restore, move, or duplicate.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        page_ids: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of page IDs'
-        },
-        action: { type: 'string', enum: ['archive', 'restore', 'move', 'duplicate'], description: 'Action to perform' },
-        target_parent_id: { type: 'string', description: 'Target parent for move action (optional)' }
-      },
-      required: ['page_ids', 'action']
-    }
-  },
-  {
-    name: 'databases_query',
-    description: `Query database with filters, sorts, or smart search. Search auto-finds across all text fields.
-Examples:
-- Search: {database_id: "xxx", search: "project"}
-- Filter: {database_id: "xxx", filters: {property: "Status", select: {equals: "Active"}}}
-- Sort: {database_id: "xxx", sorts: [{property: "Created", direction: "descending"}]}
-- Limit: {database_id: "xxx", search: "todo", limit: 10}`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        database_id: { type: 'string', description: 'Database ID to query' },
-        filters: { type: 'object', description: 'Notion filter object (optional)', additionalProperties: true },
-        sorts: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              property: { type: 'string' },
-              direction: { type: 'string', enum: ['ascending', 'descending'] }
-            },
-            additionalProperties: true
-          },
-          description: 'Sort configuration (optional)'
-        },
-        limit: { type: 'number', description: 'Max results to return (optional)' },
-        search: { type: 'string', description: 'Smart search across all text properties (optional)' }
-      },
-      required: ['database_id']
-    }
-  },
-  {
-    name: 'databases_items',
-    description: `Bulk create, update, or delete database items. Auto-converts simple values to Notion format.
-Examples:
-- Bulk create: {database_id: "xxx", action: "create", items: [{properties: {Name: "Item 1", Status: "Active", Tags: ["tag1"]}}]}
-- Bulk update: {database_id: "xxx", action: "update", items: [{page_id: "page1", properties: {Status: "Done"}}]}
-- Bulk delete: {database_id: "xxx", action: "delete", items: [{page_id: "page1"}, {page_id: "page2"}]}
+    name: 'databases',
+    description: `All database operations in one tool. Actions: create, get, query, create_page, update_page, delete_page.
 
-Property format: Simple values auto-convert (Status: "Active", Tags: ["Action", "Fantasy"], Count: 5, Done: true)`,
+Maps to: POST/GET /v1/databases + POST /v1/databases/{id}/query + POST/PATCH /v1/pages
+
+Examples:
+- Create DB: {action: "create", parent_id: "xxx", title: "Tasks", properties: {Status: {select: {options: [{name: "Todo"}, {name: "Done"}]}}}}
+- Get schema: {action: "get", database_id: "xxx"}
+- Query: {action: "query", database_id: "xxx", filters: {property: "Status", select: {equals: "Done"}}}
+- Smart search: {action: "query", database_id: "xxx", search: "project"}
+- Create items: {action: "create_page", database_id: "xxx", pages: [{properties: {Name: "Item 1", Status: "Todo"}}]}
+- Update items: {action: "update_page", database_id: "xxx", pages: [{page_id: "yyy", properties: {Status: "Done"}}]}
+- Delete items: {action: "delete_page", database_id: "xxx", page_ids: ["yyy", "zzz"]}`,
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['create', 'get', 'query', 'create_page', 'update_page', 'delete_page'],
+          description: 'Action to perform'
+        },
         database_id: { type: 'string', description: 'Database ID' },
-        action: { type: 'string', enum: ['create', 'update', 'delete'], description: 'Action to perform' },
-        items: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              page_id: { type: 'string', description: 'Page ID (required for update/delete)' },
-              properties: { type: 'object', description: 'Item properties', additionalProperties: true }
-            },
-            additionalProperties: false
-          },
-          description: 'Array of items to process'
-        }
-      },
-      required: ['database_id', 'action', 'items']
-    }
-  },
-  {
-    name: 'databases_schema',
-    description: 'Get database schema and structure information.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        database_id: { type: 'string', description: 'Database ID' }
-      },
-      required: ['database_id']
-    }
-  },
-  {
-    name: 'databases_create',
-    description: 'Create a new database with specified properties and schema.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        parent_id: { type: 'string', description: 'Parent page ID' },
+        parent_id: { type: 'string', description: 'Parent page ID (for create)' },
         title: { type: 'string', description: 'Database title' },
-        description: { type: 'string', description: 'Database description (optional)' },
-        properties: { type: 'object', description: 'Property schema definition' },
-        is_inline: { type: 'boolean', description: 'Display as inline database (optional)' }
+        description: { type: 'string', description: 'Database description' },
+        properties: { type: 'object', description: 'Database schema properties' },
+        is_inline: { type: 'boolean', description: 'Display as inline' },
+        filters: { type: 'object', description: 'Query filters' },
+        sorts: { type: 'array', description: 'Query sorts' },
+        limit: { type: 'number', description: 'Max results' },
+        search: { type: 'string', description: 'Smart search across text fields' },
+        page_id: { type: 'string', description: 'Single page ID' },
+        page_ids: { type: 'array', items: { type: 'string' }, description: 'Multiple page IDs' },
+        page_properties: { type: 'object', description: 'Page properties' },
+        pages: { type: 'array', description: 'Array of pages for bulk operations' }
       },
-      required: ['parent_id', 'title', 'properties']
+      required: ['action']
     }
   },
   {
-    name: 'search_smart',
-    description: 'Smart search across workspace with context-aware ranking and filtering.',
+    name: 'blocks',
+    description: `All block operations in one tool. Actions: get, children, append, update, delete.
+
+Maps to: GET/PATCH/DELETE /v1/blocks/{id} + GET/PATCH /v1/blocks/{id}/children
+
+Examples:
+- Get block: {action: "get", block_id: "xxx"}
+- Get children: {action: "children", block_id: "xxx"}
+- Append: {action: "append", block_id: "xxx", content: "## New section\\nContent here"}
+- Update: {action: "update", block_id: "xxx", content: "Updated text"}
+- Delete: {action: "delete", block_id: "xxx"}`,
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['get', 'children', 'append', 'update', 'delete'],
+          description: 'Action to perform'
+        },
+        block_id: { type: 'string', description: 'Block ID' },
+        content: { type: 'string', description: 'Markdown content (for append/update)' }
+      },
+      required: ['action', 'block_id']
+    }
+  },
+  {
+    name: 'users',
+    description: `All user operations in one tool. Actions: list, get, me.
+
+Maps to: GET /v1/users + GET /v1/users/{id} + GET /v1/users/me
+
+Examples:
+- List all: {action: "list"}
+- Get user: {action: "get", user_id: "xxx"}
+- Get bot info: {action: "me"}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['list', 'get', 'me'],
+          description: 'Action to perform'
+        },
+        user_id: { type: 'string', description: 'User ID (for get action)' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'workspace',
+    description: `Workspace operations. Actions: info, search.
+
+Maps to: GET /v1/users/me + POST /v1/search
+
+Examples:
+- Get info: {action: "info"}
+- Search: {action: "search", query: "project", filter: {object: "page"}, limit: 10}`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['info', 'search'],
+          description: 'Action to perform'
+        },
         query: { type: 'string', description: 'Search query' },
         filter: {
           type: 'object',
           properties: {
-            object: { type: 'string', enum: ['page', 'database'], description: 'Filter by object type' },
-            property: { type: 'string', description: 'Property to filter' },
-            value: { description: 'Filter value' }
-          },
-          description: 'Search filters (optional)'
+            object: { type: 'string', enum: ['page', 'database'] }
+          }
         },
         sort: {
           type: 'object',
           properties: {
             direction: { type: 'string', enum: ['ascending', 'descending'] },
             timestamp: { type: 'string', enum: ['last_edited_time', 'created_time'] }
-          },
-          description: 'Sort configuration (optional)'
+          }
         },
-        limit: { type: 'number', description: 'Max results (optional)' }
+        limit: { type: 'number', description: 'Max results' }
       },
-      required: ['query']
+      required: ['action']
     }
   },
   {
-    name: 'comments_manage',
-    description: `Manage comments: list all or create new. Note: Notion API doesn't support deleting/resolving comments.
+    name: 'comments',
+    description: `Comment operations. Actions: list, create.
+
+Maps to: GET /v1/comments + POST /v1/comments
+
 Examples:
 - List: {action: "list", page_id: "xxx"}
 - Create: {action: "create", page_id: "xxx", content: "Great work!"}
@@ -220,45 +194,21 @@ Examples:
     inputSchema: {
       type: 'object',
       properties: {
-        page_id: { type: 'string', description: 'Page ID (required for list/create)' },
-        discussion_id: { type: 'string', description: 'Discussion ID (optional)' },
+        page_id: { type: 'string', description: 'Page ID' },
+        discussion_id: { type: 'string', description: 'Discussion ID (for replies)' },
         action: { type: 'string', enum: ['list', 'create'], description: 'Action to perform' },
-        content: { type: 'string', description: 'Comment content (required for create)' }
+        content: { type: 'string', description: 'Comment content (for create)' }
       },
       required: ['action']
     }
   },
   {
-    name: 'workspace_explore',
-    description: 'Explore workspace content: recent, shared, or all items.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        view: { type: 'string', enum: ['recent', 'shared', 'all'], description: 'View type' },
-        filter: {
-          type: 'object',
-          properties: {
-            object: { type: 'string', enum: ['page', 'database'] }
-          },
-          description: 'Filter options (optional)'
-        },
-        limit: { type: 'number', description: 'Max results (optional)' }
-      },
-      required: ['view']
-    }
-  },
-  {
-    name: 'workspace_info',
-    description: 'Get workspace and bot information.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
     name: 'content_convert',
-    description: 'Convert between Markdown and Notion blocks format.',
+    description: `Utility: Convert between Markdown and Notion blocks format.
+
+Examples:
+- To blocks: {direction: "markdown-to-blocks", content: "# Hello\\nWorld"}
+- To markdown: {direction: "blocks-to-markdown", content: [{type: "paragraph", ...}]}`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -267,7 +217,7 @@ Examples:
           enum: ['markdown-to-blocks', 'blocks-to-markdown'],
           description: 'Conversion direction'
         },
-        content: { description: 'Content to convert (string for markdown, array for blocks)' }
+        content: { description: 'Content to convert (string or array/JSON string)' }
       },
       required: ['direction', 'content']
     }
@@ -280,12 +230,10 @@ Examples:
 export function registerTools(server: Server, notionToken: string) {
   const notion = new Client({ auth: notionToken })
 
-  // List tools handler
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS
   }))
 
-  // Call tool handler
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params
 
@@ -303,57 +251,27 @@ export function registerTools(server: Server, notionToken: string) {
       let result
 
       switch (name) {
-        // Pages
-        case 'pages_create':
-          result = await pagesCreate(notion, args as any)
+        case 'pages':
+          result = await pages(notion, args as any)
           break
-        case 'pages_edit':
-          result = await pagesEdit(notion, args as any)
+        case 'databases':
+          result = await databases(notion, args as any)
           break
-        case 'pages_get':
-          result = await pagesGet(notion, args.page_id as string)
+        case 'blocks':
+          result = await blocks(notion, args as any)
           break
-        case 'pages_manage':
-          result = await pagesManage(notion, args as any)
+        case 'users':
+          result = await users(notion, args as any)
           break
-
-        // Databases
-        case 'databases_query':
-          result = await databasesQuery(notion, args as any)
+        case 'workspace':
+          result = await workspace(notion, args as any)
           break
-        case 'databases_items':
-          result = await databasesItems(notion, args as any)
-          break
-        case 'databases_schema':
-          result = await databasesSchema(notion, args.database_id as string)
-          break
-        case 'databases_create':
-          result = await databasesCreate(notion, args as any)
-          break
-
-        // Search
-        case 'search_smart':
-          result = await searchSmart(notion, args as any)
-          break
-
-        // Comments
-        case 'comments_manage':
+        case 'comments':
           result = await commentsManage(notion, args as any)
           break
-
-        // Workspace
-        case 'workspace_explore':
-          result = await workspaceExplore(notion, args as any)
-          break
-        case 'workspace_info':
-          result = await workspaceInfo(notion)
-          break
-
-        // Content
         case 'content_convert':
           result = await contentConvert(args as any)
           break
-
         default:
           throw new NotionMCPError(
             `Unknown tool: ${name}`,
@@ -363,12 +281,10 @@ export function registerTools(server: Server, notionToken: string) {
       }
 
       return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }
-        ]
+        content: [{
+          type: 'text',
+          text: JSON.stringify(result, null, 2)
+        }]
       }
     } catch (error) {
       const enhancedError = error instanceof NotionMCPError
@@ -380,12 +296,10 @@ export function registerTools(server: Server, notionToken: string) {
         )
 
       return {
-        content: [
-          {
-            type: 'text',
-            text: aiReadableMessage(enhancedError)
-          }
-        ],
+        content: [{
+          type: 'text',
+          text: aiReadableMessage(enhancedError)
+        }],
         isError: true
       }
     }

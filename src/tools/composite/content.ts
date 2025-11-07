@@ -32,10 +32,19 @@ export async function contentConvert(
       }
 
       case 'blocks-to-markdown': {
-        if (!Array.isArray(input.content)) {
+        let content = input.content
+        // Parse JSON string if needed
+        if (typeof content === 'string') {
+          try {
+            content = JSON.parse(content)
+          } catch (e) {
+            throw new Error('Content must be a valid JSON array or array object for blocks-to-markdown')
+          }
+        }
+        if (!Array.isArray(content)) {
           throw new Error('Content must be an array for blocks-to-markdown')
         }
-        const markdown = blocksToMarkdown(input.content as any)
+        const markdown = blocksToMarkdown(content as any)
         return {
           direction: input.direction,
           char_count: markdown.length,

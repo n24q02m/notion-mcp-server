@@ -1,6 +1,6 @@
 /**
- * Databases Composite Tools
- * Human-friendly database operations
+ * Databases Mega Tool
+ * All database operations in one unified interface
  */
 
 import { Client } from '@notionhq/client'
@@ -9,371 +9,352 @@ import { autoPaginate } from '../helpers/pagination.js'
 import { convertToNotionProperties } from '../helpers/properties.js'
 import * as RichText from '../helpers/richtext.js'
 
-export interface DatabaseQueryInput {
-  database_id: string
+export interface DatabasesInput {
+  action: 'create' | 'get' | 'query' | 'create_page' | 'update_page' | 'delete_page'
+
+  // Common params
+  database_id?: string
+
+  // Create database params
+  parent_id?: string
+  title?: string
+  description?: string
+  properties?: Record<string, any>
+  is_inline?: boolean
+
+  // Query params
   filters?: any
   sorts?: any[]
   limit?: number
-  search?: string  // Smart search across all text properties
-}
+  search?: string
 
-export interface DatabaseItemsInput {
-  database_id: string
-  action: 'create' | 'update' | 'delete'
-  items: Array<{
-    page_id?: string  // Required for update/delete
+  // Page operations params (create/update/delete database items)
+  page_id?: string
+  page_ids?: string[]
+  page_properties?: Record<string, any>
+
+  // Bulk operations
+  pages?: Array<{
+    page_id?: string
     properties: Record<string, any>
   }>
 }
 
 /**
- * Query database with smart filtering and search
+ * Unified databases tool - handles all database operations
  */
-export async function databasesQuery(
+export async function databases(
   notion: Client,
-  input: DatabaseQueryInput
+  input: DatabasesInput
 ): Promise<any> {
   return withErrorHandling(async () => {
-    // Get database schema first
+    switch (input.action) {
+      case 'create':
+        return await createDatabase(notion, input)
+
+      case 'get':
+        return await getDatabase(notion, input)
+
+      case 'query':
+        return await queryDatabase(notion, input)
+
+      case 'create_page':
+        return await createDatabasePages(notion, input)
+
+      case 'update_page':
+        return await updateDatabasePages(notion, input)
+
+      case 'delete_page':
+        return await deleteDatabasePages(notion, input)
+
+      default:
+        throw new NotionMCPError(
+          `Unknown action: ${input.action}`,
+          'VALIDATION_ERROR',
+          'Supported actions: create, get, query, create_page, update_page, delete_page'
+        )
+    }
+  })()
+}
+
+/**
+ * Create database with schema
+ * Maps to: POST /v1/databases
+ */
+async function createDatabase(notion: Client, input: DatabasesInput): Promise<any> {
+  if (!input.parent_id || !input.title || !input.properties) {
+    throw new NotionMCPError(
+      'parent_id, title, and properties required for create action',
+      'VALIDATION_ERROR',
+      'Provide parent_id, title, and properties'
+    )
+  }
+
+  const dbData: any = {
+    parent: { type: 'page_id', page_id: input.parent_id },
+    title: [RichText.text(input.title)],
+    properties: input.properties
+  }
+
+  if (input.description) {
+    dbData.description = [RichText.text(input.description)]
+  }
+
+  if (input.is_inline !== undefined) {
+    dbData.is_inline = input.is_inline
+  }
+
+  const database = await notion.databases.create(dbData)
+
+  return {
+    action: 'create',
+    database_id: database.id,
+    url: (database as any).url,
+    created: true
+  }
+}
+
+/**
+ * Get database schema and info
+ * Maps to: GET /v1/databases/{id}
+ */
+async function getDatabase(notion: Client, input: DatabasesInput): Promise<any> {
+  if (!input.database_id) {
+    throw new NotionMCPError('database_id required for get action', 'VALIDATION_ERROR', 'Provide database_id')
+  }
+
+  const database: any = await notion.databases.retrieve({
+    database_id: input.database_id
+  })
+
+  // Format properties for AI-friendly output
+  const schema: any = {}
+  for (const [name, prop] of Object.entries(database.properties)) {
+    const p = prop as any
+    schema[name] = {
+      type: p.type,
+      id: p.id
+    }
+
+    if (p.type === 'select' && p.select?.options) {
+      schema[name].options = p.select.options.map((o: any) => o.name)
+    } else if (p.type === 'multi_select' && p.multi_select?.options) {
+      schema[name].options = p.multi_select.options.map((o: any) => o.name)
+    } else if (p.type === 'formula' && p.formula) {
+      schema[name].expression = p.formula.expression
+    }
+  }
+
+  return {
+    action: 'get',
+    database_id: database.id,
+    title: database.title?.[0]?.plain_text || 'Untitled',
+    description: database.description?.[0]?.plain_text || '',
+    url: database.url,
+    is_inline: database.is_inline,
+    created_time: database.created_time,
+    last_edited_time: database.last_edited_time,
+    schema
+  }
+}
+
+/**
+ * Query database with filters, sorts, search
+ * Maps to: POST /v1/databases/{id}/query
+ */
+async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any> {
+  if (!input.database_id) {
+    throw new NotionMCPError('database_id required for query action', 'VALIDATION_ERROR', 'Provide database_id')
+  }
+
+  let filter = input.filters
+
+  // Smart search across text properties
+  if (input.search && !filter) {
     const database = await notion.databases.retrieve({
       database_id: input.database_id
     })
 
-    let filter = input.filters
+    const textProps = Object.entries((database as any).properties)
+      .filter(([_, prop]: [string, any]) =>
+        ['title', 'rich_text'].includes(prop.type)
+      )
+      .map(([name]) => name)
 
-    // Smart search across text properties
-    if (input.search && !filter) {
-      const textProps = Object.entries((database as any).properties)
-        .filter(([_, prop]: [string, any]) =>
-          ['title', 'rich_text'].includes(prop.type)
-        )
-        .map(([name]) => name)
+    if (textProps.length > 0) {
+      filter = {
+        or: textProps.map(propName => ({
+          property: propName,
+          rich_text: { contains: input.search }
+        }))
+      }
+    }
+  }
 
-      if (textProps.length > 0) {
-        // Create OR filter for all text properties
-        filter = {
-          or: textProps.map(propName => ({
-            property: propName,
-            rich_text: {
-              contains: input.search
-            }
-          }))
-        }
+  const queryParams: any = { database_id: input.database_id }
+  if (filter) queryParams.filter = filter
+  if (input.sorts) queryParams.sorts = input.sorts
+
+  // Fetch with pagination
+  const allResults = await autoPaginate(
+    (cursor) => notion.databases.query({
+      ...queryParams,
+      start_cursor: cursor,
+      page_size: 100
+    })
+  )
+
+  // Limit results if specified
+  const results = input.limit ? allResults.slice(0, input.limit) : allResults
+
+  // Format results
+  const formattedResults = results.map((page: any) => {
+    const props: any = { page_id: page.id, url: page.url }
+
+    for (const [key, prop] of Object.entries(page.properties)) {
+      const p = prop as any
+      if (p.type === 'title' && p.title) {
+        props[key] = p.title.map((t: any) => t.plain_text).join('')
+      } else if (p.type === 'rich_text' && p.rich_text) {
+        props[key] = p.rich_text.map((t: any) => t.plain_text).join('')
+      } else if (p.type === 'select' && p.select) {
+        props[key] = p.select.name
+      } else if (p.type === 'multi_select' && p.multi_select) {
+        props[key] = p.multi_select.map((s: any) => s.name)
+      } else if (p.type === 'number') {
+        props[key] = p.number
+      } else if (p.type === 'checkbox') {
+        props[key] = p.checkbox
+      } else if (p.type === 'url') {
+        props[key] = p.url
+      } else if (p.type === 'email') {
+        props[key] = p.email
+      } else if (p.type === 'phone_number') {
+        props[key] = p.phone_number
+      } else if (p.type === 'date' && p.date) {
+        props[key] = p.date.start + (p.date.end ? ` to ${p.date.end}` : '')
       }
     }
 
-    // Query database
-    const queryParams: any = {
-      database_id: input.database_id
-    }
+    return props
+  })
 
-    if (filter) queryParams.filter = filter
-    if (input.sorts) queryParams.sorts = input.sorts
+  return {
+    action: 'query',
+    database_id: input.database_id,
+    total: formattedResults.length,
+    results: formattedResults
+  }
+}
 
-    // Fetch results with pagination
-    const maxPages = input.limit ? Math.ceil(input.limit / 100) : 0
-    const allResults = await autoPaginate(
-      async (cursor) => {
-        return await notion.databases.query({
-          ...queryParams,
-          start_cursor: cursor,
-          page_size: 100
-        }) as any
-      },
-      { maxPages }
-    )
+/**
+ * Create pages in database (bulk)
+ * Maps to: Multiple POST /v1/pages
+ */
+async function createDatabasePages(notion: Client, input: DatabasesInput): Promise<any> {
+  if (!input.database_id) {
+    throw new NotionMCPError('database_id required', 'VALIDATION_ERROR', 'Provide database_id')
+  }
 
-    // Apply limit if specified
-    const results = input.limit
-      ? allResults.slice(0, input.limit)
-      : allResults
+  const items = input.pages || (input.page_properties ? [{ properties: input.page_properties }] : [])
 
-    // Format results
-    const formattedResults = results.map((page: any) => ({
+  if (items.length === 0) {
+    throw new NotionMCPError('pages or page_properties required', 'VALIDATION_ERROR', 'Provide items to create')
+  }
+
+  const results = []
+
+  for (const item of items) {
+    const properties = convertToNotionProperties(item.properties)
+
+    const page = await notion.pages.create({
+      parent: { type: 'database_id', database_id: input.database_id },
+      properties
+    })
+
+    results.push({
       page_id: page.id,
-      url: page.url,
-      created_time: page.created_time,
-      last_edited_time: page.last_edited_time,
-      properties: formatProperties(page.properties)
-    }))
-
-    return {
-      database_id: input.database_id,
-      total: formattedResults.length,
-      results: formattedResults
-    }
-  })()
-}
-
-/**
- * Bulk create/update/delete database items
- */
-export async function databasesItems(
-  notion: Client,
-  input: DatabaseItemsInput
-): Promise<any> {
-  return withErrorHandling(async () => {
-    const results = []
-
-    for (const item of input.items) {
-      try {
-        let result
-
-        switch (input.action) {
-          case 'create':
-            result = await notion.pages.create({
-              parent: { database_id: input.database_id },
-              properties: convertToNotionProperties(item.properties)
-            })
-            results.push({
-              status: 'created',
-              page_id: result.id,
-              url: (result as any).url
-            })
-            break
-
-          case 'update':
-            if (!item.page_id) {
-              throw new NotionMCPError(
-                'page_id required for update',
-                'VALIDATION_ERROR',
-                'Each item must have page_id for update action'
-              )
-            }
-            result = await notion.pages.update({
-              page_id: item.page_id,
-              properties: convertToNotionProperties(item.properties)
-            })
-            results.push({
-              status: 'updated',
-              page_id: result.id
-            })
-            break
-
-          case 'delete':
-            if (!item.page_id) {
-              throw new NotionMCPError(
-                'page_id required for delete',
-                'VALIDATION_ERROR',
-                'Each item must have page_id for delete action'
-              )
-            }
-            await notion.pages.update({
-              page_id: item.page_id,
-              archived: true
-            })
-            results.push({
-              status: 'deleted',
-              page_id: item.page_id
-            })
-            break
-        }
-      } catch (error) {
-        results.push({
-          status: 'failed',
-          page_id: item.page_id,
-          error: (error as Error).message
-        })
-      }
-    }
-
-    return {
-      action: input.action,
-      database_id: input.database_id,
-      processed: results.length,
-      successful: results.filter(r => r.status !== 'failed').length,
-      failed: results.filter(r => r.status === 'failed').length,
-      results
-    }
-  })()
-}
-
-/**
- * Get database schema and structure
- */
-export async function databasesSchema(
-  notion: Client,
-  database_id: string
-): Promise<any> {
-  return withErrorHandling(async () => {
-    const database = await notion.databases.retrieve({ database_id })
-
-    return {
-      database_id: database.id,
-      title: extractDatabaseTitle(database),
-      description: (database as any).description,
-      url: (database as any).url,
-      created_time: (database as any).created_time,
-      last_edited_time: (database as any).last_edited_time,
-      schema: formatSchema((database as any).properties),
-      is_inline: (database as any).is_inline
-    }
-  })()
-}
-
-/**
- * Create new database
- */
-export async function databasesCreate(
-  notion: Client,
-  input: {
-    parent_id: string
-    title: string
-    description?: string
-    properties: Record<string, any>
-    is_inline?: boolean
-  }
-): Promise<any> {
-  return withErrorHandling(async () => {
-    const database = await notion.databases.create({
-      parent: { type: 'page_id', page_id: input.parent_id.replace(/-/g, '') },
-      title: [RichText.text(input.title)],
-      description: input.description ? [RichText.text(input.description)] : [],
-      properties: input.properties,
-      is_inline: input.is_inline || false
-    } as any)
-
-    return {
-      id: database.id,
-      url: (database as any).url,
+      url: (page as any).url,
       created: true
-    }
-  })()
+    })
+  }
+
+  return {
+    action: 'create_page',
+    database_id: input.database_id,
+    processed: results.length,
+    results
+  }
 }
 
 /**
- * Format properties for easier reading
+ * Update pages in database (bulk)
+ * Maps to: Multiple PATCH /v1/pages/{id}
  */
-function formatProperties(properties: Record<string, any>): Record<string, any> {
-  const formatted: Record<string, any> = {}
+async function updateDatabasePages(notion: Client, input: DatabasesInput): Promise<any> {
+  const items = input.pages || (input.page_id && input.page_properties ?
+    [{ page_id: input.page_id, properties: input.page_properties }] : [])
 
-  for (const [name, prop] of Object.entries(properties)) {
-    switch (prop.type) {
-      case 'title':
-        formatted[name] = prop.title.length > 0
-          ? RichText.extractPlainText(prop.title)
-          : ''
-        break
-
-      case 'rich_text':
-        formatted[name] = prop.rich_text.length > 0
-          ? RichText.extractPlainText(prop.rich_text)
-          : ''
-        break
-
-      case 'number':
-        formatted[name] = prop.number
-        break
-
-      case 'select':
-        formatted[name] = prop.select?.name || null
-        break
-
-      case 'multi_select':
-        formatted[name] = prop.multi_select.map((s: any) => s.name)
-        break
-
-      case 'date':
-        formatted[name] = prop.date
-        break
-
-      case 'checkbox':
-        formatted[name] = prop.checkbox
-        break
-
-      case 'url':
-        formatted[name] = prop.url
-        break
-
-      case 'email':
-        formatted[name] = prop.email
-        break
-
-      case 'phone_number':
-        formatted[name] = prop.phone_number
-        break
-
-      case 'status':
-        formatted[name] = prop.status?.name || null
-        break
-
-      case 'people':
-        formatted[name] = prop.people.map((p: any) => ({
-          id: p.id,
-          name: p.name
-        }))
-        break
-
-      case 'files':
-        formatted[name] = prop.files.map((f: any) => ({
-          name: f.name,
-          url: f.file?.url || f.external?.url
-        }))
-        break
-
-      case 'relation':
-        formatted[name] = prop.relation.map((r: any) => r.id)
-        break
-
-      case 'rollup':
-        formatted[name] = prop.rollup
-        break
-
-      case 'formula':
-        formatted[name] = prop.formula
-        break
-
-      default:
-        formatted[name] = prop
-    }
+  if (items.length === 0) {
+    throw new NotionMCPError('pages or page_id+page_properties required', 'VALIDATION_ERROR', 'Provide items to update')
   }
 
-  return formatted
+  const results = []
+
+  for (const item of items) {
+    if (!item.page_id) {
+      throw new NotionMCPError('page_id required for each item', 'VALIDATION_ERROR', 'Provide page_id')
+    }
+
+    const properties = convertToNotionProperties(item.properties)
+
+    await notion.pages.update({
+      page_id: item.page_id,
+      properties
+    })
+
+    results.push({
+      page_id: item.page_id,
+      updated: true
+    })
+  }
+
+  return {
+    action: 'update_page',
+    processed: results.length,
+    results
+  }
 }
 
 /**
- * Format schema for easier understanding
+ * Delete pages in database (bulk archive)
+ * Maps to: Multiple PATCH /v1/pages/{id} with archived: true
  */
-function formatSchema(properties: Record<string, any>): Record<string, any> {
-  const schema: Record<string, any> = {}
+async function deleteDatabasePages(notion: Client, input: DatabasesInput): Promise<any> {
+  const pageIds = input.page_ids || (input.page_id ? [input.page_id] : []) ||
+    (input.pages ? input.pages.map(p => p.page_id!).filter(Boolean) : [])
 
-  for (const [name, prop] of Object.entries(properties)) {
-    schema[name] = {
-      type: prop.type,
-      id: prop.id,
-      ...(prop.type === 'select' && {
-        options: prop.select?.options
-      }),
-      ...(prop.type === 'multi_select' && {
-        options: prop.multi_select?.options
-      }),
-      ...(prop.type === 'status' && {
-        options: prop.status?.options,
-        groups: prop.status?.groups
-      }),
-      ...(prop.type === 'relation' && {
-        database_id: prop.relation?.database_id
-      }),
-      ...(prop.type === 'rollup' && {
-        relation_property: prop.rollup?.relation_property_name,
-        rollup_property: prop.rollup?.rollup_property_name,
-        function: prop.rollup?.function
-      }),
-      ...(prop.type === 'formula' && {
-        expression: prop.formula?.expression
-      })
-    }
+  if (pageIds.length === 0) {
+    throw new NotionMCPError('page_id or page_ids required', 'VALIDATION_ERROR', 'Provide page IDs to delete')
   }
 
-  return schema
-}
+  const results = []
 
-/**
- * Extract database title
- */
-function extractDatabaseTitle(database: any): string {
-  if (database.title && database.title.length > 0) {
-    return RichText.extractPlainText(database.title)
+  for (const pageId of pageIds) {
+    await notion.pages.update({
+      page_id: pageId,
+      archived: true
+    })
+
+    results.push({
+      page_id: pageId,
+      deleted: true
+    })
   }
-  return 'Untitled Database'
+
+  return {
+    action: 'delete_page',
+    processed: results.length,
+    results
+  }
 }
