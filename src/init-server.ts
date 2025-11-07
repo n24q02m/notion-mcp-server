@@ -20,8 +20,8 @@ export async function initServer() {
   // Create MCP server
   const server = new Server(
     {
-      name: '@n24q02m/notion-mcp-enhanced',
-      version: '2.0.0'
+      name: '@n24q02m/better-notion-mcp',
+      version: '1.0.0'
     },
     {
       capabilities: {

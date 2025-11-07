@@ -1,8 +1,8 @@
-# Notion MCP Enhanced
+# Better Notion MCP
 
 **Composite MCP Server for Notion - Human-Like Workflows for AI Agents**
 
-[![npm version](https://badge.fury.io/js/%40n24q02m%2Fnotion-mcp-enhanced.svg)](https://www.npmjs.com/package/@n24q02m/notion-mcp-enhanced)
+[![npm version](https://badge.fury.io/js/%40n24q02m%2Fbetter-notion-mcp.svg)](https://www.npmjs.com/package/@n24q02m/better-notion-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org)
 
@@ -32,7 +32,7 @@ This MCP server enables **AI agents to work with Notion using human-like workflo
   "mcpServers": {
     "notion": {
       "command": "npx",
-      "args": ["@n24q02m/notion-mcp-enhanced"],
+      "args": ["@n24q02m/better-notion-mcp"],
       "env": {
         "NOTION_TOKEN": "your-notion-token-here"
       }
@@ -51,7 +51,7 @@ This MCP server enables **AI agents to work with Notion using human-like workflo
       "args": [
         "run", "--rm", "-i",
         "-e", "NOTION_TOKEN=your-notion-token-here",
-        "n24q02m/notion-mcp:latest"
+        "n24q02m/better-notion-mcp:latest"
       ]
     }
   }
@@ -61,14 +61,14 @@ This MCP server enables **AI agents to work with Notion using human-like workflo
 ### NPM Global
 
 ```bash
-npm install -g @n24q02m/notion-mcp-enhanced
+npm install -g @n24q02m/better-notion-mcp
 ```
 
 ```json
 {
   "mcpServers": {
     "notion": {
-      "command": "notion-mcp",
+      "command": "better-notion-mcp",
       "env": {
         "NOTION_TOKEN": "your-notion-token-here"
       }
@@ -84,45 +84,6 @@ npm install -g @n24q02m/notion-mcp-enhanced
 3. Name it and select your workspace
 4. Copy the **Internal Integration Token**
 5. Share pages/databases with your integration
-
-## 💡 Usage Examples
-
-### Create Page with Content
-
-```javascript
-pages_create({
-  title: "Meeting Notes - Q4 Planning",
-  content: `# Agenda
-
-- Budget review
-- Roadmap discussion
-
-## Action Items
-
-- [ ] Update projections
-- [ ] Schedule follow-up`,
-  icon: "📝",
-  parent_id: "database_id"
-})
-```
-
-Complete page creation in one call - title, content, and properties.
-
-### Bulk Database Updates
-
-```javascript
-databases_items({
-  database_id: "tasks_db",
-  action: "update",
-  items: [
-    { page_id: "1", properties: { Status: "Done" } },
-    { page_id: "2", properties: { Status: "In Progress" } },
-    { page_id: "3", properties: { Status: "Todo" } }
-  ]
-})
-```
-
-Update multiple database items in a single operation.
 
 ## 🛠️ 13 Composite Tools
 
@@ -174,8 +135,11 @@ Each tool is designed as a complete human workflow, not an atomic API operation.
    - Intelligent ranking and filtering
    - Auto-pagination
 
-10. **`comments_manage`** - List and create comments
-    - Unified interface for all comment operations
+10. **`comments_manage`** - Unified comment operations
+    - List all comments with auto-pagination and metadata
+    - Create new comments with plain text (no rich_text array needed)
+    - Reply to comment threads using discussion_id
+    - Simpler than Official MCP: string input vs rich_text array
 
 11. **`workspace_explore`** - Navigate recent/shared content
     - Quick access to workspace overview
@@ -184,66 +148,6 @@ Each tool is designed as a complete human workflow, not an atomic API operation.
 
 13. **`content_convert`** - Markdown ↔ Notion blocks
     - Bidirectional conversion utility
-
-## 🎨 Real-World Use Cases
-
-### Automated Meeting Notes
-
-```javascript
-pages_create({
-  title: "Team Sync - Dec 1",
-  content: `# Agenda
-- Sprint review
-- Next sprint planning
-
-## Attendees
-- Alice, Bob, Carol
-
-## Notes
-(To be filled)`,
-  parent_id: "meetings_db",
-  properties: {
-    "Date": "2024-12-01",
-    "Type": "Team Sync"
-  }
-})
-```
-
-Create complete meeting notes page with agenda, structure, and properties in one call.
-
-### Bulk Task Import
-
-```javascript
-databases_items({
-  database_id: "tasks_db",
-  action: "create",
-  items: csvData.map(row => ({
-    properties: {
-      "Task": row.name,
-      "Priority": row.priority,
-      "Assignee": row.assignee,
-      "Due Date": row.due
-    }
-  }))
-})
-```
-
-Import multiple tasks from external data sources efficiently.
-
-### Smart Workspace Search
-
-```javascript
-search_smart({
-  query: "Q4 roadmap",
-  filter: { object: "page" },
-  sort: {
-    direction: "descending",
-    timestamp: "last_edited_time"
-  }
-})
-```
-
-Search across workspace with automatic pagination for all results.
 
 ## 🔧 Development
 
@@ -256,8 +160,8 @@ Search across workspace with automatic pagination for all results.
 ### Build from Source
 
 ```bash
-git clone https://github.com/n24q02m/notion-mcp-server
-cd notion-mcp-server
+git clone https://github.com/n24q02m/better-notion-mcp
+cd better-notion-mcp
 npm install
 npm run build
 ```
@@ -277,16 +181,16 @@ npm run start
 
 ```bash
 # Build image
-docker build -t notion-mcp-enhanced .
+docker build -t better-notion-mcp .
 
 # Run container
-docker run -e NOTION_API_KEY=secret_xxx notion-mcp-enhanced
+docker run -e NOTION_API_KEY=secret_xxx better-notion-mcp
 ```
 
 ### Architecture
 
 ```
-notion-mcp-enhanced/
+better-notion-mcp/
 ├── src/
 │   ├── init-server.ts          # MCP server initialization
 │   └── tools/
@@ -319,7 +223,7 @@ npm test
   "mcpServers": {
     "notion": {
       "command": "npx",
-      "args": ["-y", "@n24q02m/notion-mcp-enhanced"],
+      "args": ["-y", "@n24q02m/better-notion-mcp"],
       "env": {
         "NOTION_API_KEY": "secret_xxx"
       }
@@ -368,8 +272,8 @@ MIT License - See [LICENSE](LICENSE)
 
 ## 🔗 Links
 
-- [npm Package](https://www.npmjs.com/package/@n24q02m/notion-mcp-enhanced)
-- [GitHub Repository](https://github.com/n24q02m/notion-mcp-server)
+- [npm Package](https://www.npmjs.com/package/@n24q02m/better-notion-mcp)
+- [GitHub Repository](https://github.com/n24q02m/better-notion-mcp)
 - [Notion API Documentation](https://developers.notion.com)
 - [Model Context Protocol](https://modelcontextprotocol.io)
 

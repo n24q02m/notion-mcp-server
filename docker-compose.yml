@@ -1,5 +1,5 @@
 services:
-  notion-mcp-server:
+  better-notion-mcp:
     build: .
     stdin_open: true
     tty: true

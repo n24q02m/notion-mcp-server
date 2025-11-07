@@ -1,4 +1,4 @@
-# Enhanced Notion MCP Server - Optimized for AI Agents
+# Better Notion MCP - Optimized for AI Agents
 # syntax=docker/dockerfile:1
 
 # Use Node.js 22 as the base image
@@ -23,13 +23,13 @@ RUN --mount=type=cache,target=/root/.npm npm run build
 FROM node:22-alpine
 
 # Copy built package from builder stage
-COPY --from=builder /app/build /usr/local/lib/node_modules/@n24q02m/notion-mcp-enhanced/build
-COPY --from=builder /app/bin /usr/local/lib/node_modules/@n24q02m/notion-mcp-enhanced/bin
-COPY --from=builder /app/package.json /usr/local/lib/node_modules/@n24q02m/notion-mcp-enhanced/
-COPY --from=builder /app/node_modules /usr/local/lib/node_modules/@n24q02m/notion-mcp-enhanced/node_modules
+COPY --from=builder /app/build /usr/local/lib/node_modules/@n24q02m/better-notion-mcp/build
+COPY --from=builder /app/bin /usr/local/lib/node_modules/@n24q02m/better-notion-mcp/bin
+COPY --from=builder /app/package.json /usr/local/lib/node_modules/@n24q02m/better-notion-mcp/
+COPY --from=builder /app/node_modules /usr/local/lib/node_modules/@n24q02m/better-notion-mcp/node_modules
 
 # Create symlink for CLI
-RUN ln -s /usr/local/lib/node_modules/@n24q02m/notion-mcp-enhanced/bin/cli.mjs /usr/local/bin/notion-mcp
+RUN ln -s /usr/local/lib/node_modules/@n24q02m/better-notion-mcp/bin/cli.mjs /usr/local/bin/better-notion-mcp
 
 # Set default environment variables
 ENV NODE_ENV=production
@@ -38,4 +38,4 @@ ENV NODE_ENV=production
 USER node
 
 # Set entrypoint
-ENTRYPOINT ["notion-mcp"]
+ENTRYPOINT ["better-notion-mcp"]
