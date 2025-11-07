@@ -6,6 +6,7 @@
 import { Client } from '@notionhq/client'
 import { NotionMCPError, withErrorHandling } from '../helpers/errors.js'
 import { autoPaginate } from '../helpers/pagination.js'
+import { convertToNotionProperties } from '../helpers/properties.js'
 import * as RichText from '../helpers/richtext.js'
 
 export interface DatabaseQueryInput {
@@ -98,10 +99,8 @@ export async function databasesQuery(
 
     return {
       database_id: input.database_id,
-      database_title: extractDatabaseTitle(database),
-      total_results: formattedResults.length,
-      results: formattedResults,
-      schema: formatSchema((database as any).properties)
+      total: formattedResults.length,
+      results: formattedResults
     }
   })()
 }
@@ -124,7 +123,7 @@ export async function databasesItems(
           case 'create':
             result = await notion.pages.create({
               parent: { database_id: input.database_id },
-              properties: item.properties
+              properties: convertToNotionProperties(item.properties)
             })
             results.push({
               status: 'created',
@@ -143,7 +142,7 @@ export async function databasesItems(
             }
             result = await notion.pages.update({
               page_id: item.page_id,
-              properties: item.properties
+              properties: convertToNotionProperties(item.properties)
             })
             results.push({
               status: 'updated',
@@ -227,9 +226,7 @@ export async function databasesCreate(
 ): Promise<any> {
   return withErrorHandling(async () => {
     const database = await notion.databases.create({
-      parent: input.parent_id.includes('-')
-        ? { type: 'page_id', page_id: input.parent_id }
-        : { type: 'workspace', workspace: true },
+      parent: { type: 'page_id', page_id: input.parent_id.replace(/-/g, '') },
       title: [RichText.text(input.title)],
       description: input.description ? [RichText.text(input.description)] : [],
       properties: input.properties,
@@ -237,10 +234,9 @@ export async function databasesCreate(
     } as any)
 
     return {
-      database_id: database.id,
+      id: database.id,
       url: (database as any).url,
-      title: input.title,
-      message: 'Database created successfully'
+      created: true
     }
   })()
 }

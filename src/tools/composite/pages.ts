@@ -7,6 +7,7 @@ import { Client } from '@notionhq/client'
 import { NotionMCPError, withErrorHandling } from '../helpers/errors.js'
 import { blocksToMarkdown, markdownToBlocks } from '../helpers/markdown.js'
 import { autoPaginate } from '../helpers/pagination.js'
+import { convertToNotionProperties } from '../helpers/properties.js'
 import * as RichText from '../helpers/richtext.js'
 
 export interface PageCreateInput {
@@ -45,19 +46,46 @@ export async function pagesCreate(
 ): Promise<any> {
   return withErrorHandling(async () => {
     // Prepare parent
-    const parent = input.parent_id
-      ? input.parent_id.includes('-')
-        ? { page_id: input.parent_id }
-        : { database_id: input.parent_id }
-      : { workspace: true }
+    let parent: any
 
-    // Prepare properties
-    const properties: any = input.properties || {}
+    if (!input.parent_id) {
+      throw new NotionMCPError(
+        'parent_id is required for page creation',
+        'VALIDATION_ERROR',
+        'Integration tokens cannot create workspace-level pages. Provide parent_id (database or page ID) to create pages.'
+      )
+    }
 
-    // Add title if not in properties (for database pages)
-    if (!properties.title && !properties.Name) {
-      properties.Name = {
-        title: [RichText.text(input.title)]
+    const normalizedId = input.parent_id.replace(/-/g, '')
+
+    // Auto-detect parent type based on properties
+    if (input.properties && Object.keys(input.properties).length > 0) {
+      // Has custom properties = database page
+      parent = { type: 'database_id', database_id: normalizedId }
+    } else {
+      // No custom properties = subpage
+      parent = { type: 'page_id', page_id: normalizedId }
+    }
+
+    // Prepare properties based on parent type
+    let properties: any = {}
+
+    if (parent.database_id) {
+      // Database page - convert simple properties to Notion format
+      properties = convertToNotionProperties(input.properties || {})
+
+      // Ensure title property exists
+      if (!properties.title && !properties.Name && !properties.Title) {
+        properties.Name = {
+          title: [RichText.text(input.title)]
+        }
+      }
+    } else {
+      // Subpage - simple title property
+      properties = {
+        title: {
+          title: [RichText.text(input.title)]
+        }
       }
     }
 
@@ -73,15 +101,6 @@ export async function pagesCreate(
 
     if (input.cover) {
       pageData.cover = { type: 'external', external: { url: input.cover } }
-    }
-
-    // For non-database pages, use title in properties
-    if (!input.parent_id || parent.page_id) {
-      pageData.properties = {
-        title: {
-          title: [RichText.text(input.title)]
-        }
-      }
     }
 
     // Create page
@@ -187,25 +206,32 @@ export async function pagesEdit(
           children: blocks as any
         })
       } else if (input.prepend_content) {
-        // Prepend to start
-        const blocks = markdownToBlocks(input.prepend_content)
+        // Prepend to start - convert existing content to markdown, then recreate with new content first
         const { results: existingBlocks } = await notion.blocks.children.list({
-          block_id: input.page_id,
-          page_size: 1
+          block_id: input.page_id
         })
 
-        if (existingBlocks.length > 0) {
-          // Insert before first block
+        // Convert existing blocks to markdown to preserve them
+        const existingMarkdown = blocksToMarkdown(existingBlocks as any)
+
+        // Delete all existing blocks
+        for (const block of existingBlocks) {
+          await notion.blocks.delete({ block_id: block.id })
+        }
+
+        // Add new content first
+        const newBlocks = markdownToBlocks(input.prepend_content)
+        await notion.blocks.children.append({
+          block_id: input.page_id,
+          children: newBlocks as any
+        })
+
+        // Re-add existing content from markdown
+        if (existingMarkdown.trim()) {
+          const recreatedBlocks = markdownToBlocks(existingMarkdown)
           await notion.blocks.children.append({
             block_id: input.page_id,
-            children: blocks as any,
-            after: undefined  // Will prepend
-          })
-        } else {
-          // No existing blocks, just append
-          await notion.blocks.children.append({
-            block_id: input.page_id,
-            children: blocks as any
+            children: recreatedBlocks as any
           })
         }
       }
@@ -213,7 +239,7 @@ export async function pagesEdit(
 
     return {
       page_id: input.page_id,
-      message: 'Page updated successfully'
+      updated: true
     }
   })()
 }
@@ -255,40 +281,66 @@ export async function pagesManage(
                 'Provide target_parent_id to move pages'
               )
             }
-            // Move operation - update parent (not supported in official SDK, skip for now)
-            results.push({
+            // Move operation - update parent
+            await notion.pages.update({
               page_id,
-              status: 'skipped',
-              message: 'Move operation not yet supported'
-            })
+              parent: {
+                page_id: input.target_parent_id.replace(/-/g, '')
+              }
+            } as any)
+            results.push({ page_id, status: 'moved', new_parent: input.target_parent_id })
             break
 
           case 'duplicate':
             // Get page content
             const page = await notion.pages.retrieve({ page_id })
-            const { results: blocks } = await notion.blocks.children.list({
-              block_id: page_id
-            })
+
+            // Get all blocks recursively
+            const blocks = await autoPaginate(
+              async (cursor) => {
+                return await notion.blocks.children.list({
+                  block_id: page_id,
+                  start_cursor: cursor,
+                  page_size: 100
+                }) as any
+              }
+            )
+
+            // Filter properties - remove read-only properties
+            const writableProperties: any = {}
+            const readOnlyTypes = ['created_time', 'created_by', 'last_edited_time', 'last_edited_by', 'rollup', 'formula']
+
+            for (const [key, prop] of Object.entries((page as any).properties)) {
+              const propType = (prop as any).type
+              if (!readOnlyTypes.includes(propType)) {
+                writableProperties[key] = prop
+              }
+            }
 
             // Create duplicate
             const duplicate = await notion.pages.create({
               parent: (page as any).parent,
-              properties: (page as any).properties,
+              properties: writableProperties,
               icon: (page as any).icon,
               cover: (page as any).cover
             })
 
-            // Copy blocks
+            // Copy blocks in batches
             if (blocks.length > 0) {
-              await notion.blocks.children.append({
-                block_id: duplicate.id,
-                children: blocks as any
-              })
+              const batchSize = 100
+              for (let i = 0; i < blocks.length; i += batchSize) {
+                const batch = blocks.slice(i, i + batchSize)
+                await notion.blocks.children.append({
+                  block_id: duplicate.id,
+                  children: batch as any
+                })
+              }
             }
 
             results.push({
               original_id: page_id,
               duplicate_id: duplicate.id,
+              url: (duplicate as any).url,
               status: 'duplicated'
             })
             break
@@ -336,15 +388,13 @@ export async function pagesGet(
     const content = blocksToMarkdown(blocks as any)
 
     return {
-      page_id: page.id,
+      id: page.id,
       url: (page as any).url,
       title: extractTitle(page),
-      created_time: (page as any).created_time,
-      last_edited_time: (page as any).last_edited_time,
-      archived: (page as any).archived,
-      properties: (page as any).properties,
       content,
-      block_count: blocks.length
+      created_time: (page as any).created_time,
+      last_edited: (page as any).last_edited_time,
+      archived: (page as any).archived
     }
   })()
 }

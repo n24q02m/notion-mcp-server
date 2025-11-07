@@ -59,6 +59,14 @@ function handleNotionError(error: any): NotionMCPError {
   const code = error.code
   const message = error.message || 'Unknown Notion API error'
 
+  // Log full error for debugging
+  console.error('Notion API Error:', JSON.stringify({
+    code,
+    message,
+    body: error.body,
+    status: error.status
+  }, null, 2))
+
   switch (code) {
     case 'unauthorized':
       return new NotionMCPError(

@@ -11,7 +11,7 @@ import * as RichText from '../helpers/richtext.js'
 export interface CommentsManageInput {
   page_id?: string
   discussion_id?: string
-  action: 'list' | 'create' | 'resolve'
+  action: 'list' | 'create'
   content?: string  // For create action
 }
 
@@ -53,22 +53,34 @@ export async function commentsManage(
       }
 
       case 'create': {
-        if (!input.page_id || !input.content) {
-          throw new Error('page_id and content required for create action')
+        if (!input.content) {
+          throw new Error('content required for create action')
         }
 
-        const comment = await (notion.comments as any).create({
-          parent: {
-            page_id: input.page_id
-          },
+        // Either page_id or discussion_id must be provided
+        if (!input.page_id && !input.discussion_id) {
+          throw new Error('Either page_id or discussion_id is required for create action')
+        }
+
+        const createParams: any = {
           rich_text: [RichText.text(input.content)]
-        })
+        }
+
+        // Add parent or discussion_id based on input
+        if (input.discussion_id) {
+          createParams.discussion_id = input.discussion_id
+        } else {
+          createParams.parent = {
+            page_id: input.page_id
+          }
+        }
+
+        const comment = await (notion.comments as any).create(createParams)
 
         return {
-          status: 'created',
           comment_id: comment.id,
           discussion_id: comment.discussion_id,
-          message: 'Comment created successfully'
+          created: true
         }
       }
 

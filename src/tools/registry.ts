@@ -22,23 +22,34 @@ import { NotionMCPError, aiReadableMessage } from './helpers/errors.js'
 const TOOLS = [
   {
     name: 'pages_create',
-    description: 'Create a new page with title and content in one operation. Supports parent pages, databases, icons, covers, and markdown content.',
+    description: `Create page with markdown content. Auto-converts simple property values to Notion format.
+Examples: 
+- Database page: {title: "My Story", parent_id: "db-id", properties: {Status: "Active", Tags: ["Action", "Fantasy"]}}
+- Subpage: {title: "Meeting Notes", parent_id: "page-id", content: "# Notes\\n- Point 1"}
+- With content: {title: "Tasks", parent_id: "db-id", content: "# TODO\\n- Item 1", properties: {Priority: "High"}}
+
+Note: Integration tokens cannot create workspace-level pages. Always provide parent_id.`,
     inputSchema: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'Page title' },
         content: { type: 'string', description: 'Page content in Markdown format (optional)' },
-        parent_id: { type: 'string', description: 'Parent page or database ID (optional, creates workspace-level page if omitted)' },
+        parent_id: { type: 'string', description: 'Parent page or database ID (required - integration tokens cannot create workspace pages)' },
         icon: { type: 'string', description: 'Emoji icon (optional)' },
         cover: { type: 'string', description: 'Cover image URL (optional)' },
-        properties: { type: 'object', description: 'Database properties for pages in databases (optional)' }
+        properties: { type: 'object', description: 'Database properties in simple format: {Status: "Active", Tags: ["tag1", "tag2"]} (optional)' }
       },
-      required: ['title']
+      required: ['title', 'parent_id']
     }
   },
   {
     name: 'pages_edit',
-    description: 'Edit existing page title, content, and properties. Can replace, append, or prepend content.',
+    description: `Edit page content/properties. Supports replace/append/prepend.
+Examples:
+- Update title: {page_id: "xxx", title: "New Title"}
+- Replace content: {page_id: "xxx", content: "# New content"}
+- Append: {page_id: "xxx", append_content: "\n## New section"}
+- Update properties: {page_id: "xxx", properties: {Status: "Done"}}`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -85,7 +96,12 @@ const TOOLS = [
   },
   {
     name: 'databases_query',
-    description: 'Query database with smart filtering, search, and sorting. Automatically searches across all text properties.',
+    description: `Query database with filters, sorts, or smart search. Search auto-finds across all text fields.
+Examples:
+- Search: {database_id: "xxx", search: "project"}
+- Filter: {database_id: "xxx", filters: {property: "Status", select: {equals: "Active"}}}
+- Sort: {database_id: "xxx", sorts: [{property: "Created", direction: "descending"}]}
+- Limit: {database_id: "xxx", search: "todo", limit: 10}`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -111,7 +127,13 @@ const TOOLS = [
   },
   {
     name: 'databases_items',
-    description: 'Bulk create, update, or delete database items in one operation.',
+    description: `Bulk create, update, or delete database items. Auto-converts simple values to Notion format.
+Examples:
+- Bulk create: {database_id: "xxx", action: "create", items: [{properties: {Name: "Item 1", Status: "Active", Tags: ["tag1"]}}]}
+- Bulk update: {database_id: "xxx", action: "update", items: [{page_id: "page1", properties: {Status: "Done"}}]}
+- Bulk delete: {database_id: "xxx", action: "delete", items: [{page_id: "page1"}, {page_id: "page2"}]}
+
+Property format: Simple values auto-convert (Status: "Active", Tags: ["Action", "Fantasy"], Count: 5, Done: true)`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -190,13 +212,17 @@ const TOOLS = [
   },
   {
     name: 'comments_manage',
-    description: 'Manage page comments: list, create, or resolve.',
+    description: `Manage comments: list all or create new. Note: Notion API doesn't support deleting/resolving comments.
+Examples:
+- List: {action: "list", page_id: "xxx"}
+- Create: {action: "create", page_id: "xxx", content: "Great work!"}
+- Reply: {action: "create", discussion_id: "xxx", content: "I agree"}`,
     inputSchema: {
       type: 'object',
       properties: {
         page_id: { type: 'string', description: 'Page ID (required for list/create)' },
         discussion_id: { type: 'string', description: 'Discussion ID (optional)' },
-        action: { type: 'string', enum: ['list', 'create', 'resolve'], description: 'Action to perform' },
+        action: { type: 'string', enum: ['list', 'create'], description: 'Action to perform' },
         content: { type: 'string', description: 'Comment content (required for create)' }
       },
       required: ['action']

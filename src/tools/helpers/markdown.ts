@@ -164,7 +164,37 @@ export function parseRichText(text: string): RichText[] {
   for (let i = 0; i < text.length; i++) {
     const char = text[i]
     const next = text[i + 1]
-    const next2 = text[i + 2]
+
+    // Link [text](url)
+    if (char === '[') {
+      const closeBracket = text.indexOf(']', i)
+      const openParen = closeBracket !== -1 ? text.indexOf('(', closeBracket) : -1
+      const closeParen = openParen !== -1 ? text.indexOf(')', openParen) : -1
+
+      if (closeBracket !== -1 && openParen === closeBracket + 1 && closeParen !== -1) {
+        if (current) {
+          richText.push(createRichText(current, { bold, italic, code, strikethrough }))
+          current = ''
+        }
+
+        const linkText = text.slice(i + 1, closeBracket)
+        const linkUrl = text.slice(openParen + 1, closeParen)
+
+        richText.push({
+          type: 'text',
+          text: { content: linkText, link: { url: linkUrl } },
+          annotations: {
+            bold, italic, strikethrough,
+            underline: false,
+            code,
+            color: 'default'
+          }
+        })
+
+        i = closeParen
+        continue
+      }
+    }
 
     // Bold **text**
     if (char === '*' && next === '*') {
