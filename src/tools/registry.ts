@@ -72,7 +72,11 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        page_ids: { type: 'array', items: { type: 'string' }, description: 'Array of page IDs' },
+        page_ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of page IDs'
+        },
         action: { type: 'string', enum: ['archive', 'restore', 'move', 'duplicate'], description: 'Action to perform' },
         target_parent_id: { type: 'string', description: 'Target parent for move action (optional)' }
       },
@@ -86,8 +90,19 @@ const TOOLS = [
       type: 'object',
       properties: {
         database_id: { type: 'string', description: 'Database ID to query' },
-        filters: { type: 'object', description: 'Notion filter object (optional)' },
-        sorts: { type: 'array', description: 'Sort configuration (optional)' },
+        filters: { type: 'object', description: 'Notion filter object (optional)', additionalProperties: true },
+        sorts: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              property: { type: 'string' },
+              direction: { type: 'string', enum: ['ascending', 'descending'] }
+            },
+            additionalProperties: true
+          },
+          description: 'Sort configuration (optional)'
+        },
         limit: { type: 'number', description: 'Max results to return (optional)' },
         search: { type: 'string', description: 'Smart search across all text properties (optional)' }
       },
@@ -108,8 +123,9 @@ const TOOLS = [
             type: 'object',
             properties: {
               page_id: { type: 'string', description: 'Page ID (required for update/delete)' },
-              properties: { type: 'object', description: 'Item properties' }
-            }
+              properties: { type: 'object', description: 'Item properties', additionalProperties: true }
+            },
+            additionalProperties: false
           },
           description: 'Array of items to process'
         }
