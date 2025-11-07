@@ -10,7 +10,7 @@
 
 **Mission**: Enable AI agents to work with Notion using **human-like workflows** while maintaining **near-complete API coverage** with **minimal tools and token usage**.
 
-This MCP server transforms Notion's 28+ atomic REST API endpoints into **8 mega action-based tools** that mirror how humans actually work with Notion:
+This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega action-based tools** that mirror how humans actually work with Notion:
 
 1. **Action-Based Design**: Each tool supports multiple related actions (e.g., pages tool: create, get, update, archive)
 2. **Markdown-First**: Natural language content format optimized for AI understanding
@@ -22,7 +22,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **8 mega 
 
 ## ✨ Key Features
 
-- **8 Mega Tools**: 75% Official API coverage (21/28 endpoints) with safe operations only
+- **7 Mega Tools**: 75% Official API coverage (21/28 endpoints) with safe operations only
 - **25+ Actions**: Multiple actions per tool for comprehensive functionality
 - **Markdown Support**: Write and read Notion content in markdown format
 - **Auto-Pagination**: Automatically fetch all results without cursor management
@@ -92,7 +92,7 @@ npm install -g @n24q02m/better-notion-mcp
 4. Copy the **Internal Integration Token**
 5. Share pages/databases with your integration
 
-## 🛠️ 8 Mega Action-Based Tools
+## 🛠️ 7 Mega Action-Based Tools
 
 Each tool supports multiple actions, mapping to 21+ Official Notion API endpoints.
 
@@ -180,7 +180,7 @@ Each tool supports multiple actions, mapping to 21+ Official Notion API endpoint
 
 ---
 
-**Total Coverage**: 8 tools with 25+ actions covering 21/28 Official API endpoints (75%)
+**Total Coverage**: 7 tools with 25+ actions covering 21/28 Official API endpoints (75%)
 
 ## 🔧 Development
 

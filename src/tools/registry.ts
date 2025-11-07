@@ -1,5 +1,5 @@
 /**
- * Tool Registry - 8 Mega Tools
+ * Tool Registry - 7 Mega Tools
  * Consolidated registration for maximum coverage with minimal tools
  */
 
@@ -18,7 +18,7 @@ import { workspace } from './composite/workspace.js'
 import { NotionMCPError, aiReadableMessage } from './helpers/errors.js'
 
 /**
- * 8 Mega Tools covering 75% of Official Notion API
+ * 7 Mega Tools covering 75% of Official Notion API
  */
 const TOOLS = [
   {
