@@ -197,7 +197,7 @@ async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any
 
   // Fetch with pagination
   const allResults = await autoPaginate(
-    (cursor) => notion.databases.query({
+    (cursor) => (notion.databases as any).query({
       ...queryParams,
       start_cursor: cursor,
       page_size: 100

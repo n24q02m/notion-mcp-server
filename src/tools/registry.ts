@@ -85,13 +85,13 @@ Examples:
         properties: { type: 'object', description: 'Database schema properties' },
         is_inline: { type: 'boolean', description: 'Display as inline' },
         filters: { type: 'object', description: 'Query filters' },
-        sorts: { type: 'array', description: 'Query sorts' },
+        sorts: { type: 'array', items: { type: 'object' }, description: 'Query sorts' },
         limit: { type: 'number', description: 'Max results' },
         search: { type: 'string', description: 'Smart search across text fields' },
         page_id: { type: 'string', description: 'Single page ID' },
         page_ids: { type: 'array', items: { type: 'string' }, description: 'Multiple page IDs' },
         page_properties: { type: 'object', description: 'Page properties' },
-        pages: { type: 'array', description: 'Array of pages for bulk operations' }
+        pages: { type: 'array', items: { type: 'object' }, description: 'Array of pages for bulk operations' }
       },
       required: ['action']
     }

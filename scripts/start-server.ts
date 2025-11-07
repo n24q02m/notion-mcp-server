@@ -1,5 +1,5 @@
 /**
- * Enhanced Notion MCP Server Starter
+ * Better Notion MCP Server Starter
  * Simplified to use composite tools only
  */
 
@@ -11,7 +11,7 @@ async function startServer() {
 
     // Keep process running
     process.on('SIGINT', () => {
-      console.error('\n👋 Shutting down Notion MCP Enhanced Server')
+      console.error('\n👋 Shutting down Better Notion MCP Server')
       process.exit(0)
     })
   } catch (error) {

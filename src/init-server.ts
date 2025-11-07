@@ -1,5 +1,5 @@
 /**
- * Enhanced Notion MCP Server
+ * Better Notion MCP Server
  * Using composite tools for human-friendly AI agent interactions
  */
 
@@ -36,10 +36,5 @@ export async function initServer() {
   // Connect stdio transport
   const transport = new StdioServerTransport()
   await server.connect(transport)
-
-  console.error('✅ Notion MCP Enhanced Server started')
-  console.error('📦 13 composite tools registered')
-  console.error('🔗 Ready for AI agent connections')
-
   return server
 }

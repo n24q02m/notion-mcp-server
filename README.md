@@ -220,51 +220,6 @@ docker build -t better-notion-mcp .
 docker run -e NOTION_API_KEY=secret_xxx better-notion-mcp
 ```
 
-### Architecture
-
-```text
-better-notion-mcp/
-├── src/
-│   ├── init-server.ts          # MCP server initialization
-│   └── tools/
-│       ├── registry.ts         # Central tool registration
-│       ├── composite/          # 13 composite tools (6 files)
-│       │   ├── pages.ts        # 4 page tools
-│       │   ├── databases.ts    # 4 database tools
-│       │   └── workspace.ts    # 5 workspace tools
-│       └── helpers/            # Shared utilities
-│           ├── markdown.ts     # Markdown ↔ Blocks conversion
-│           ├── pagination.ts   # Auto-pagination wrapper
-│           ├── richtext.ts     # Rich text formatting
-│           └── errors.ts       # AI-friendly error messages
-├── scripts/
-│   ├── start-server.ts         # Entry point
-│   └── build-cli.js            # CLI build config
-└── tests/
-    └── test-composite-tools.js # Tool verification
-```
-
-### Testing
-
-```bash
-# Verify all 13 tools registered correctly
-npm test
-
-# Manual testing with Claude Desktop
-# Add to ~/.config/Claude/claude_desktop_config.json:
-{
-  "mcpServers": {
-    "notion": {
-      "command": "npx",
-      "args": ["-y", "@n24q02m/better-notion-mcp"],
-      "env": {
-        "NOTION_API_KEY": "secret_xxx"
-      }
-    }
-  }
-}
-```
-
 ## 📄 License
 
 MIT License - See [LICENSE](LICENSE)
