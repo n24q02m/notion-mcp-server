@@ -5,6 +5,11 @@
 [![npm version](https://badge.fury.io/js/%40n24q02m%2Fbetter-notion-mcp.svg)](https://www.npmjs.com/package/@n24q02m/better-notion-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org)
+[![Docker](https://img.shields.io/docker/v/n24q02m/better-notion-mcp?label=docker)](https://hub.docker.com/r/n24q02m/better-notion-mcp)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/n24q02m/better-notion-mcp/ci.yml?branch=main)](https://github.com/n24q02m/better-notion-mcp/actions)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![GitHub issues](https://img.shields.io/github/issues/n24q02m/better-notion-mcp)](https://github.com/n24q02m/better-notion-mcp/issues)
+[![GitHub stars](https://img.shields.io/github/stars/n24q02m/better-notion-mcp)](https://github.com/n24q02m/better-notion-mcp/stargazers)
 
 ## 🎯 Design Philosophy
 
@@ -17,8 +22,6 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 3. **Auto-Pagination**: Transparent handling of large datasets
 4. **Bulk Operations**: Process multiple items efficiently in one request
 5. **Safe-by-Default**: Only safe operations exposed (no risky schema updates)
-
-**Coverage**: 75% of Official Notion API endpoints (21/28), focusing on 100% of common workflows while excluding risky/advanced operations.
 
 ## ✨ Key Features
 
@@ -64,6 +67,11 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
   }
 }
 ```
+
+## 📚 Documentation
+
+- **[Changelog](CHANGELOG.md)** - Version history and changes
+- **[Security Policy](SECURITY.md)** - How to report security vulnerabilities
 
 ## 🔑 Get Notion Token
 
@@ -159,10 +167,6 @@ Each tool supports multiple actions, mapping to 21+ Official Notion API endpoint
 
 - Example: `{direction: "markdown-to-blocks", content: "# Hello\nWorld"}`
 
----
-
-**Total Coverage**: 7 tools with 25+ actions covering 21/28 Official API endpoints (75%)
-
 ## 🔧 Development
 
 ### Prerequisites
@@ -184,21 +188,34 @@ npm run build
 
 ```bash
 # Run with your Notion token
-NOTION_API_KEY=secret_xxx npm run start
+NOTION_TOKEN=secret_xxx npm run dev
 
 # Or use environment variable
-export NOTION_API_KEY=secret_xxx
-npm run start
+export NOTION_TOKEN=secret_xxx
+npm run dev
+```
+
+### Run Tests
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# With coverage
+npm run test:coverage
 ```
 
 ### Docker Development
 
 ```bash
 # Build image
-docker build -t better-notion-mcp .
+npm run docker:build
 
 # Run container
-docker run -e NOTION_API_KEY=secret_xxx better-notion-mcp
+npm run docker:run
 ```
 
 ## 📄 License
@@ -211,13 +228,16 @@ MIT License - See [LICENSE](LICENSE)
   - [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/sdk) - MCP framework
   - [@notionhq/client](https://github.com/makenotion/notion-sdk-js) - Official Notion SDK
 
+## 📞 Support & Community
+
+- 🐛 [Report Bugs](https://github.com/n24q02m/better-notion-mcp/issues/new?template=bug_report.yml)
+- 💡 [Request Features](https://github.com/n24q02m/better-notion-mcp/issues/new?template=feature_request.yml)
+- ⭐ [Star this repo](https://github.com/n24q02m/better-notion-mcp) if you find it useful!
+
 ## 🔗 Links
 
 - [npm Package](https://www.npmjs.com/package/@n24q02m/better-notion-mcp)
+- [Docker Hub](https://hub.docker.com/r/n24q02m/better-notion-mcp)
 - [GitHub Repository](https://github.com/n24q02m/better-notion-mcp)
 - [Notion API Documentation](https://developers.notion.com)
 - [Model Context Protocol](https://modelcontextprotocol.io)
-
----
-
-**Composite MCP Server - Human Workflows for AI Agents**
