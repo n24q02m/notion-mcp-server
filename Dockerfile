@@ -2,7 +2,7 @@
 # syntax=docker/dockerfile:1
 
 # Use Node.js 22 as the base image
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -20,7 +20,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/.npm npm run build
 
 # Minimal image for runtime
-FROM node:22-alpine
+FROM node:25-alpine
 
 # Copy built package from builder stage
 COPY --from=builder /app/build /usr/local/lib/node_modules/@n24q02m/better-notion-mcp/build
