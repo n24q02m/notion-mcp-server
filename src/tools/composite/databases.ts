@@ -10,10 +10,12 @@ import { convertToNotionProperties } from '../helpers/properties.js'
 import * as RichText from '../helpers/richtext.js'
 
 export interface DatabasesInput {
-  action: 'create' | 'get' | 'query' | 'create_page' | 'update_page' | 'delete_page'
+  action: 'create' | 'get' | 'query' | 'create_page' | 'update_page' | 'delete_page' |
+  'create_data_source' | 'update_data_source' | 'update_database'
 
   // Common params
   database_id?: string
+  data_source_id?: string
 
   // Create database params
   parent_id?: string
@@ -21,6 +23,8 @@ export interface DatabasesInput {
   description?: string
   properties?: Record<string, any>
   is_inline?: boolean
+  icon?: string
+  cover?: string
 
   // Query params
   filters?: any
@@ -67,11 +71,20 @@ export async function databases(
       case 'delete_page':
         return await deleteDatabasePages(notion, input)
 
+      case 'create_data_source':
+        return await createDataSource(notion, input)
+
+      case 'update_data_source':
+        return await updateDataSource(notion, input)
+
+      case 'update_database':
+        return await updateDatabaseContainer(notion, input)
+
       default:
         throw new NotionMCPError(
           `Unknown action: ${input.action}`,
           'VALIDATION_ERROR',
-          'Supported actions: create, get, query, create_page, update_page, delete_page'
+          'Supported actions: create, get, query, create_page, update_page, delete_page, create_data_source, update_data_source, update_database'
         )
     }
   })()
@@ -417,5 +430,136 @@ async function deleteDatabasePages(notion: Client, input: DatabasesInput): Promi
     action: 'delete_page',
     processed: results.length,
     results
+  }
+}
+
+/**
+ * Create additional data source for existing database
+ * Maps to: POST /v1/data_sources (API 2025-09-03)
+ */
+async function createDataSource(notion: Client, input: DatabasesInput): Promise<any> {
+  if (!input.database_id || !input.title || !input.properties) {
+    throw new NotionMCPError(
+      'database_id, title, and properties required',
+      'VALIDATION_ERROR',
+      'Provide database_id, title, and properties for new data source'
+    )
+  }
+
+  const dataSourceData: any = {
+    parent: { type: 'database_id', database_id: input.database_id },
+    title: [RichText.text(input.title)],
+    properties: input.properties
+  }
+
+  if (input.description) {
+    dataSourceData.description = [RichText.text(input.description)]
+  }
+
+  const dataSource: any = await (notion as any).dataSources.create(dataSourceData)
+
+  return {
+    action: 'create_data_source',
+    data_source_id: dataSource.id,
+    database_id: input.database_id,
+    created: true
+  }
+}
+
+/**
+ * Update data source (title, description, properties/schema)
+ * Maps to: PATCH /v1/data_sources/{id} (API 2025-09-03)
+ */
+async function updateDataSource(notion: Client, input: DatabasesInput): Promise<any> {
+  if (!input.data_source_id) {
+    throw new NotionMCPError('data_source_id required', 'VALIDATION_ERROR', 'Provide data_source_id')
+  }
+
+  const updates: any = {}
+
+  if (input.title) {
+    updates.title = [RichText.text(input.title)]
+  }
+
+  if (input.description) {
+    updates.description = [RichText.text(input.description)]
+  }
+
+  if (input.properties) {
+    updates.properties = input.properties
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw new NotionMCPError(
+      'No updates provided',
+      'VALIDATION_ERROR',
+      'Provide title, description, or properties to update'
+    )
+  }
+
+  await (notion as any).dataSources.update({
+    data_source_id: input.data_source_id,
+    ...updates
+  })
+
+  return {
+    action: 'update_data_source',
+    data_source_id: input.data_source_id,
+    updated: true
+  }
+}
+
+/**
+ * Update database container (parent, title, is_inline, icon, cover)
+ * Maps to: PATCH /v1/databases/{id} (API 2025-09-03)
+ */
+async function updateDatabaseContainer(notion: Client, input: DatabasesInput): Promise<any> {
+  if (!input.database_id) {
+    throw new NotionMCPError('database_id required', 'VALIDATION_ERROR', 'Provide database_id')
+  }
+
+  const updates: any = {}
+
+  if (input.parent_id) {
+    updates.parent = { type: 'page_id', page_id: input.parent_id }
+  }
+
+  if (input.title) {
+    updates.title = [RichText.text(input.title)]
+  }
+
+  if (input.description) {
+    updates.description = [RichText.text(input.description)]
+  }
+
+  if (input.is_inline !== undefined) {
+    updates.is_inline = input.is_inline
+  }
+
+  if (input.icon) {
+    updates.icon = { type: 'emoji', emoji: input.icon }
+  }
+
+  if (input.cover) {
+    updates.cover = { type: 'external', external: { url: input.cover } }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw new NotionMCPError(
+      'No updates provided',
+      'VALIDATION_ERROR',
+      'Provide parent_id, title, description, is_inline, icon, or cover'
+    )
+  }
+
+  await notion.databases.update({
+    database_id: input.database_id,
+    ...updates
+  })
+
+  return {
+    action: 'update_database',
+    database_id: input.database_id,
+    updated: true
   }
 }
