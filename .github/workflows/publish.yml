@@ -76,6 +76,10 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Better Notion MCP
+            org.opencontainers.image.description=Composite MCP Server for Notion - Human-Like Workflows for AI Agents
+            org.opencontainers.image.vendor=n24q02m
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -87,3 +91,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v5
+        if: github.event_name == 'release'
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: n24q02m/better-notion-mcp
+          short-description: ${{ github.event.repository.description }}
+          readme-filepath: ./README.md
