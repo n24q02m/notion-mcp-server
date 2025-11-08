@@ -8,7 +8,7 @@ import { NotionMCPError, withErrorHandling } from '../helpers/errors.js'
 import { autoPaginate } from '../helpers/pagination.js'
 
 export interface UsersInput {
-  action: 'list' | 'get' | 'me'
+  action: 'list' | 'get' | 'me' | 'from_workspace'
   user_id?: string
 }
 
@@ -72,11 +72,49 @@ export async function users(
         }
       }
 
+      case 'from_workspace': {
+        // Alternative method: Search pages and extract user info from metadata
+        // This bypasses the permission issue with direct users.list() call
+        const searchResults: any = await notion.search({
+          filter: { property: 'object', value: 'page' },
+          page_size: 100
+        })
+
+        const usersMap = new Map<string, any>()
+
+        for (const page of searchResults.results) {
+          // Extract users from created_by and last_edited_by
+          if (page.created_by) {
+            usersMap.set(page.created_by.id, {
+              id: page.created_by.id,
+              type: page.created_by.object,
+              source: 'page_metadata'
+            })
+          }
+          if (page.last_edited_by) {
+            usersMap.set(page.last_edited_by.id, {
+              id: page.last_edited_by.id,
+              type: page.last_edited_by.object,
+              source: 'page_metadata'
+            })
+          }
+        }
+
+        const users = Array.from(usersMap.values())
+
+        return {
+          action: 'from_workspace',
+          total: users.length,
+          users,
+          note: 'Users extracted from accessible pages. Use "me" action for bot info, or share more pages for more users.'
+        }
+      }
+
       default:
         throw new NotionMCPError(
           `Unknown action: ${input.action}`,
           'VALIDATION_ERROR',
-          'Supported actions: list, get, me'
+          'Supported actions: list, get, me, from_workspace'
         )
     }
   })()

@@ -124,20 +124,21 @@ Examples:
   },
   {
     name: 'users',
-    description: `All user operations in one tool. Actions: list, get, me.
+    description: `All user operations in one tool. Actions: list, get, me, from_workspace.
 
 Maps to: GET /v1/users + GET /v1/users/{id} + GET /v1/users/me
 
 Examples:
 - List all: {action: "list"}
 - Get user: {action: "get", user_id: "xxx"}
-- Get bot info: {action: "me"}`,
+- Get bot info: {action: "me"}
+- Extract users from pages (bypass permissions): {action: "from_workspace"}`,
     inputSchema: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'get', 'me'],
+          enum: ['list', 'get', 'me', 'from_workspace'],
           description: 'Action to perform'
         },
         user_id: { type: 'string', description: 'User ID (for get action)' }
@@ -228,7 +229,10 @@ Examples:
  * Register all tools with MCP server
  */
 export function registerTools(server: Server, notionToken: string) {
-  const notion = new Client({ auth: notionToken })
+  const notion = new Client({
+    auth: notionToken,
+    notionVersion: '2025-09-03' // Use latest API version with data_sources support
+  })
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS

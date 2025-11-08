@@ -1,6 +1,6 @@
 /**
- * Databases Mega Tool
- * All database operations in one unified interface
+ * Databases Mega Tool - Updated for Notion API 2025-09-03
+ * Supports data_sources architecture
  */
 
 import { Client } from '@notionhq/client'
@@ -78,8 +78,8 @@ export async function databases(
 }
 
 /**
- * Create database with schema
- * Maps to: POST /v1/databases
+ * Create database with initial data source
+ * Maps to: POST /v1/databases (API 2025-09-03)
  */
 async function createDatabase(notion: Client, input: DatabasesInput): Promise<any> {
   if (!input.parent_id || !input.title || !input.properties) {
@@ -90,10 +90,13 @@ async function createDatabase(notion: Client, input: DatabasesInput): Promise<an
     )
   }
 
+  // API 2025-09-03: properties go under initial_data_source
   const dbData: any = {
     parent: { type: 'page_id', page_id: input.parent_id },
     title: [RichText.text(input.title)],
-    properties: input.properties
+    initial_data_source: {
+      properties: input.properties
+    }
   }
 
   if (input.description) {
@@ -104,45 +107,61 @@ async function createDatabase(notion: Client, input: DatabasesInput): Promise<an
     dbData.is_inline = input.is_inline
   }
 
-  const database = await notion.databases.create(dbData)
+  const database: any = await notion.databases.create(dbData)
 
   return {
     action: 'create',
     database_id: database.id,
-    url: (database as any).url,
+    data_source_id: database.data_sources?.[0]?.id,
+    url: database.url,
     created: true
   }
 }
 
 /**
- * Get database schema and info
- * Maps to: GET /v1/databases/{id}
+ * Get database info including all data sources
+ * Maps to: GET /v1/databases/{id} (API 2025-09-03)
  */
 async function getDatabase(notion: Client, input: DatabasesInput): Promise<any> {
   if (!input.database_id) {
     throw new NotionMCPError('database_id required for get action', 'VALIDATION_ERROR', 'Provide database_id')
   }
 
+  // Get database (contains list of data_sources)
   const database: any = await notion.databases.retrieve({
     database_id: input.database_id
   })
 
-  // Format properties for AI-friendly output
-  const schema: any = {}
-  if (database.properties) {
-    for (const [name, prop] of Object.entries(database.properties)) {
-      const p = prop as any
-      schema[name] = {
-        type: p.type,
-        id: p.id
-      }
+  // Get detailed schema from first data source
+  let schema: any = {}
+  let dataSourceInfo: any = null
 
-      if (p.type === 'select' && p.select?.options) {
-        schema[name].options = p.select.options.map((o: any) => o.name)
-      } else if (p.type === 'multi_select' && p.multi_select?.options) {
-        schema[name].options = p.multi_select.options.map((o: any) => o.name)
-      } else if (p.type === 'formula' && p.formula) {
-        schema[name].expression = p.formula.expression
+  if (database.data_sources && database.data_sources.length > 0) {
+    const dataSource: any = await (notion as any).dataSources.retrieve({
+      data_source_id: database.data_sources[0].id
+    })
+
+    dataSourceInfo = {
+      id: dataSource.id,
+      name: dataSource.title?.[0]?.plain_text || database.data_sources[0].name
+    }
+
+    // Format properties for AI-friendly output
+    if (dataSource.properties) {
+      for (const [name, prop] of Object.entries(dataSource.properties)) {
+        const p = prop as any
+        schema[name] = {
+          type: p.type,
+          id: p.id
+        }
+
+        if (p.type === 'select' && p.select?.options) {
+          schema[name].options = p.select.options.map((o: any) => o.name)
+        } else if (p.type === 'multi_select' && p.multi_select?.options) {
+          schema[name].options = p.multi_select.options.map((o: any) => o.name)
+        } else if (p.type === 'formula' && p.formula) {
+          schema[name].expression = p.formula.expression
+        }
       }
     }
   }
@@ -156,28 +175,44 @@ async function getDatabase(notion: Client, input: DatabasesInput): Promise<any> 
     is_inline: database.is_inline,
     created_time: database.created_time,
     last_edited_time: database.last_edited_time,
+    data_source: dataSourceInfo,
     schema
   }
 }
 
 /**
- * Query database with filters, sorts, search
- * Maps to: POST /v1/databases/{id}/query
+ * Query database (via data source)
+ * Maps to: POST /v1/data_sources/{id}/query (API 2025-09-03)
  */
 async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any> {
   if (!input.database_id) {
     throw new NotionMCPError('database_id required for query action', 'VALIDATION_ERROR', 'Provide database_id')
   }
 
+  // First, get data source ID from database
+  const database: any = await notion.databases.retrieve({
+    database_id: input.database_id
+  })
+
+  if (!database.data_sources || database.data_sources.length === 0) {
+    throw new NotionMCPError(
+      'No data sources found in database',
+      'VALIDATION_ERROR',
+      'Database has no data sources'
+    )
+  }
+
+  const dataSourceId = database.data_sources[0].id
+
   let filter = input.filters
 
   // Smart search across text properties
   if (input.search && !filter) {
-    const database = await notion.databases.retrieve({
-      database_id: input.database_id
+    const dataSource: any = await (notion as any).dataSources.retrieve({
+      data_source_id: dataSourceId
     })
 
-    const textProps = Object.entries((database as any).properties)
+    const textProps = Object.entries(dataSource.properties || {})
       .filter(([_, prop]: [string, any]) =>
         ['title', 'rich_text'].includes(prop.type)
       )
@@ -193,14 +228,14 @@ async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any
     }
   }
 
-  const queryParams: any = { database_id: input.database_id }
+  const queryParams: any = { data_source_id: dataSourceId }
   if (filter) queryParams.filter = filter
   if (input.sorts) queryParams.sorts = input.sorts
 
   // Fetch with pagination
   const allResults = await autoPaginate(
     async (cursor) => {
-      const response: any = await (notion.databases as any).query({
+      const response: any = await (notion as any).dataSources.query({
         ...queryParams,
         start_cursor: cursor,
         page_size: 100
@@ -251,19 +286,35 @@ async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any
   return {
     action: 'query',
     database_id: input.database_id,
+    data_source_id: dataSourceId,
     total: formattedResults.length,
     results: formattedResults
   }
 }
 
 /**
- * Create pages in database (bulk)
- * Maps to: Multiple POST /v1/pages
+ * Create pages in database (via data source)
+ * Maps to: Multiple POST /v1/pages with data_source_id parent (API 2025-09-03)
  */
 async function createDatabasePages(notion: Client, input: DatabasesInput): Promise<any> {
   if (!input.database_id) {
     throw new NotionMCPError('database_id required', 'VALIDATION_ERROR', 'Provide database_id')
   }
+
+  // Get data source ID from database
+  const database: any = await notion.databases.retrieve({
+    database_id: input.database_id
+  })
+
+  if (!database.data_sources || database.data_sources.length === 0) {
+    throw new NotionMCPError(
+      'No data sources found in database',
+      'VALIDATION_ERROR',
+      'Database has no data sources'
+    )
+  }
+
+  const dataSourceId = database.data_sources[0].id
 
   const items = input.pages || (input.page_properties ? [{ properties: input.page_properties }] : [])
 
@@ -277,9 +328,9 @@ async function createDatabasePages(notion: Client, input: DatabasesInput): Promi
     const properties = convertToNotionProperties(item.properties)
 
     const page = await notion.pages.create({
-      parent: { type: 'database_id', database_id: input.database_id },
+      parent: { type: 'data_source_id', data_source_id: dataSourceId },
       properties
-    })
+    } as any)
 
     results.push({
       page_id: page.id,
@@ -291,6 +342,7 @@ async function createDatabasePages(notion: Client, input: DatabasesInput): Promi
   return {
     action: 'create_page',
     database_id: input.database_id,
+    data_source_id: dataSourceId,
     processed: results.length,
     results
   }
