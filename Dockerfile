@@ -10,8 +10,8 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
+# Install dependencies (allow optional deps for esbuild)
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Copy source code
 COPY . .

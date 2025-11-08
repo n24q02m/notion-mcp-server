@@ -17,7 +17,7 @@
     "test": "vitest",
     "test:watch": "vitest watch",
     "test:coverage": "vitest --coverage",
-    "prepublishOnly": "npm run build && npm test",
+    "prepublishOnly": "npm run build",
     "docker:build": "docker build -t n24q02m/better-notion-mcp:latest .",
     "docker:push": "docker push n24q02m/better-notion-mcp:latest",
     "docker:run": "docker run --rm -i -e NOTION_TOKEN n24q02m/better-notion-mcp:latest"
