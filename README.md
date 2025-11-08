@@ -22,7 +22,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 ## ✨ Key Features
 
 - **7 Mega Tools**: 75% Official API coverage (21/28 endpoints) with safe operations only
-- **25+ Actions**: Multiple actions per tool for comprehensive functionality
+- **30 Actions**: Multiple actions per tool for comprehensive functionality
 - **Markdown Support**: Write and read Notion content in markdown format
 - **Auto-Pagination**: Automatically fetch all results without cursor management
 - **Bulk Operations**: Create/update/delete multiple items in single requests
@@ -104,25 +104,47 @@ Each tool supports multiple actions, mapping to 21+ Official Notion API endpoint
 - **duplicate**: Duplicate a page with all content
   - Example: `{action: "duplicate", page_id: "xxx"}`
 
-### 2. **`databases`** - Database management (6 actions → 3 API endpoints)
+### 2. **`databases`** - Database management (9 actions → 3+ API endpoints)
 
-**Actions**: `create`, `get`, `query`, `create_page`, `update_page`, `delete_page`
+**Actions**: `create`, `get`, `query`, `create_page`, `update_page`, `delete_page`, `create_data_source`, `update_data_source`, `update_database`
 
-- **create**: Create database with full schema definition
-  - Maps to: `POST /v1/databases`
+**ARCHITECTURE NOTE:** Notion databases now support multiple data sources. A database is a container that holds one or more data sources. Each data source has its own schema (properties) and rows (pages).
+
+- **create**: Create database with initial data source
+  - Maps to: `POST /v1/databases` (API 2025-09-03)
   - Example: `{action: "create", parent_id: "xxx", title: "Tasks", properties: {Status: {select: {...}}}}`
 
 - **get**: Retrieve database schema and structure
-  - Maps to: `GET /v1/databases/{id}`
+  - Maps to: `GET /v1/databases/{id}` + auto-fetch data_source_id
   - Example: `{action: "get", database_id: "xxx"}`
 
 - **query**: Query database with filters/sorts + smart search
   - Maps to: `POST /v1/databases/{id}/query`
   - Example: `{action: "query", database_id: "xxx", search: "project", limit: 10}`
 
-- **create_page/update_page/delete_page**: Bulk operations on database items
-  - Maps to: `POST/PATCH /v1/pages` (database items are pages)
-  - Example: `{action: "create_page", database_id: "xxx", pages: [{properties: {...}}]}`
+- **create_page**: Create new database items (bulk)
+  - Maps to: `POST /v1/pages`
+  - Example: `{action: "create_page", database_id: "xxx", pages: [{properties: {Name: "Task 1", Status: "Todo"}}]}`
+
+- **update_page**: Update database items (bulk)
+  - Maps to: `PATCH /v1/pages`
+  - Example: `{action: "update_page", page_id: "yyy", page_properties: {Status: "Done"}}`
+
+- **delete_page**: Delete database items (bulk)
+  - Maps to: `DELETE /v1/pages` (via batch)
+  - Example: `{action: "delete_page", page_ids: ["yyy", "zzz"]}`
+
+- **create_data_source**: Add second data source to database
+  - Maps to: `POST /v1/data_sources`
+  - Example: `{action: "create_data_source", database_id: "xxx", title: "Archive", properties: {...}}`
+
+- **update_data_source**: Update data source schema
+  - Maps to: `PATCH /v1/data_sources/{id}`
+  - Example: `{action: "update_data_source", data_source_id: "yyy", properties: {NewField: {checkbox: {}}}}`
+
+- **update_database**: Update database container (title, icon, cover, move)
+  - Maps to: `PATCH /v1/databases/{id}`
+  - Example: `{action: "update_database", database_id: "xxx", title: "New Title", icon: "📊"}`
 
 ### 3. **`blocks`** - Granular block editing (5 actions → 5 API endpoints)
 
@@ -131,12 +153,25 @@ Each tool supports multiple actions, mapping to 21+ Official Notion API endpoint
 - Maps to: `GET/PATCH/DELETE /v1/blocks/{id}` + `GET/PATCH /v1/blocks/{id}/children`
 - Example: `{action: "append", block_id: "xxx", content: "## New section\nContent here"}`
 
-### 4. **`users`** - User management (3 actions → 3 API endpoints)
+### 4. **`users`** - User management (4 actions → 3+ API endpoints)
 
-**Actions**: `list`, `get`, `me`
+**Actions**: `list`, `get`, `me`, `from_workspace`
 
-- Maps to: `GET /v1/users`, `GET /v1/users/{id}`, `GET /v1/users/me`
-- Example: `{action: "list"}` or `{action: "get", user_id: "xxx"}` or `{action: "me"}`
+- **list**: List all users in workspace (requires permission)
+  - Maps to: `GET /v1/users`
+  - Example: `{action: "list"}`
+
+- **get**: Get specific user by ID
+  - Maps to: `GET /v1/users/{id}`
+  - Example: `{action: "get", user_id: "xxx"}`
+
+- **me**: Get current bot/integration info
+  - Maps to: `GET /v1/users/me`
+  - Example: `{action: "me"}`
+
+- **from_workspace**: Extract users from accessible pages (permission bypass)
+  - Alternative method when users.list() permission is denied
+  - Example: `{action: "from_workspace"}`
 
 ### 5. **`workspace`** - Workspace operations (2 actions → 2 API endpoints)
 
@@ -157,11 +192,15 @@ Each tool supports multiple actions, mapping to 21+ Official Notion API endpoint
 - Maps to: `GET /v1/comments`, `POST /v1/comments`
 - Example: `{action: "list", page_id: "xxx"}` or `{action: "create", page_id: "xxx", content: "Great!"}`
 
-### 7. **`content_convert`** - Markdown ↔ Notion blocks utility
+### 7. **`content_convert`** - Markdown ↔ Notion blocks utility (2 directions)
 
 **Utility tool** for converting between formats (not a direct API call)
 
-- Example: `{direction: "markdown-to-blocks", content: "# Hello\nWorld"}`
+- **markdown-to-blocks**: Parse markdown into Notion block structure
+  - Example: `{direction: "markdown-to-blocks", content: "# Hello\n\nWorld"}`
+
+- **blocks-to-markdown**: Convert Notion blocks to markdown
+  - Example: `{direction: "blocks-to-markdown", content: [{"type": "paragraph", "paragraph": {...}}]}`
 
 ## 🔧 Development
 
