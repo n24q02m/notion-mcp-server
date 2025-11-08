@@ -64,11 +64,6 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 }
 ```
 
-## 📚 Documentation
-
-- **[Changelog](CHANGELOG.md)** - Version history and changes
-- **[Security Policy](SECURITY.md)** - How to report security vulnerabilities
-
 ## 🔑 Get Notion Token
 
 1. Visit <https://www.notion.so/my-integrations>
@@ -256,24 +251,3 @@ npm run docker:run
 ## 📄 License
 
 MIT License - See [LICENSE](LICENSE)
-
-## 🙏 Acknowledgments
-
-- **Built With**:
-  - [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/sdk) - MCP framework
-  - [@notionhq/client](https://github.com/makenotion/notion-sdk-js) - Official Notion SDK
-
-## 📞 Support & Community
-
-- 🐛 [Report Bugs](https://github.com/n24q02m/better-notion-mcp/issues/new?template=bug_report.yml)
-- 💡 [Request Features](https://github.com/n24q02m/better-notion-mcp/issues/new?template=feature_request.yml)
-- ⭐ [Star this repo](https://github.com/n24q02m/better-notion-mcp) if you find it useful!
-
-## 🔗 Links
-
-- [npm Package](https://www.npmjs.com/package/@n24q02m/better-notion-mcp)
-- [Docker Hub](https://hub.docker.com/r/n24q02m/better-notion-mcp)
-- [GitHub Repository](https://github.com/n24q02m/better-notion-mcp)
-- [Notion API Documentation](https://developers.notion.com)
-- [Model Context Protocol](https://modelcontextprotocol.io)
-
