@@ -248,6 +248,24 @@ npm run docker:build
 npm run docker:run
 ```
 
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Quick Start for Contributors
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes following our [commit conventions](CONTRIBUTING.md#commit-convention)
+4. Run tests: `npm test`
+5. Submit a pull request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+## 📦 Releases
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
 ## 📄 License
 
 MIT License - See [LICENSE](LICENSE)
