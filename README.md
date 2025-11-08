@@ -7,7 +7,8 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen)](https://nodejs.org)
 [![Docker](https://img.shields.io/docker/v/n24q02m/better-notion-mcp?label=docker)](https://hub.docker.com/r/n24q02m/better-notion-mcp)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/n24q02m/better-notion-mcp/ci.yml?branch=main)](https://github.com/n24q02m/better-notion-mcp/actions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![CodeQL](https://github.com/n24q02m/better-notion-mcp/workflows/CI/badge.svg)](https://github.com/n24q02m/better-notion-mcp/security/code-scanning)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/n24q02m/better-notion-mcp/pulls)
 [![GitHub issues](https://img.shields.io/github/issues/n24q02m/better-notion-mcp)](https://github.com/n24q02m/better-notion-mcp/issues)
 [![GitHub stars](https://img.shields.io/github/stars/n24q02m/better-notion-mcp)](https://github.com/n24q02m/better-notion-mcp/stargazers)
 
