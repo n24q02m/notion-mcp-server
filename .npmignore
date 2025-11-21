@@ -1,11 +1,10 @@
 # .npmignore
-# Exclude từ npm package
+# Exclude from npm package
 
 # Source files
 src/
 tests/
 scripts/
-
 # Config files
 tsconfig.json
 .editorconfig
@@ -15,7 +14,7 @@ tsconfig.json
 # GitHub
 .github/
 
-# Documentation (ngoại trừ README và LICENSE)
+# Documentation (except README and LICENSE)
 docs/
 *.md
 !README.md

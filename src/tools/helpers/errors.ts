@@ -131,14 +131,14 @@ function handleNotionError(error: any): NotionMCPError {
  * Create AI-readable error message
  */
 export function aiReadableMessage(error: NotionMCPError): string {
-  let message = `❌ ${error.message}`
+  let message = `Error: ${error.message}`
 
   if (error.suggestion) {
-    message += `\n\n💡 Suggestion: ${error.suggestion}`
+    message += `\n\nSuggestion: ${error.suggestion}`
   }
 
   if (error.details) {
-    message += `\n\n📋 Details: ${JSON.stringify(error.details, null, 2)}`
+    message += `\n\nDetails: ${JSON.stringify(error.details, null, 2)}`
   }
 
   return message

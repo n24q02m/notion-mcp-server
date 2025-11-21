@@ -12,8 +12,8 @@ export async function initServer() {
   const notionToken = process.env.NOTION_TOKEN
 
   if (!notionToken) {
-    console.error('❌ NOTION_TOKEN environment variable is required')
-    console.error('💡 Get your token from https://www.notion.so/my-integrations')
+    console.error('NOTION_TOKEN environment variable is required')
+    console.error('Get your token from https://www.notion.so/my-integrations')
     process.exit(1)
   }
 

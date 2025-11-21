@@ -36,7 +36,7 @@ Examples:
 - Create in database: {action: "create", title: "Task", parent_id: "db-id", properties: {Status: "Todo", Priority: "High"}}
 - Get with content: {action: "get", page_id: "xxx"} → Returns markdown content
 - Update content: {action: "update", page_id: "xxx", append_content: "\n## New Section"}
-- Update metadata: {action: "update", page_id: "xxx", icon: "📝", cover: "https://..."}
+- Update metadata: {action: "update", page_id: "xxx", icon: "", cover: "https://..."}
 - Archive: {action: "archive", page_ids: ["xxx", "yyy"]}
 - Restore: {action: "restore", page_id: "xxx"}
 - Duplicate: {action: "duplicate", page_id: "xxx"}`,

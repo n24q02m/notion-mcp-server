@@ -26,11 +26,11 @@ async function build() {
 
   // Make the output file executable
   await chmod('./bin/cli.mjs', 0o755);
-  
-  console.log('✅ CLI built successfully: bin/cli.mjs');
+
+  console.log('CLI built successfully: bin/cli.mjs');
 }
 
 build().catch((err) => {
-  console.error('❌ Build failed:', err);
+  console.error('Build failed:', err);
   process.exit(1);
 });
