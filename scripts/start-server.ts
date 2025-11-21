@@ -11,11 +11,11 @@ async function startServer() {
 
     // Keep process running
     process.on('SIGINT', () => {
-      console.error('\n👋 Shutting down Better Notion MCP Server')
+      console.error('\nShutting down Better Notion MCP Server')
       process.exit(0)
     })
   } catch (error) {
-    console.error('❌ Failed to start server:', error)
+    console.error('Failed to start server:', error)
     process.exit(1)
   }
 }

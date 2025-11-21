@@ -7,7 +7,7 @@
 [![npm version](https://badge.fury.io/js/%40n24q02m%2Fbetter-notion-mcp.svg)](https://www.npmjs.com/package/@n24q02m/better-notion-mcp)
 [![Docker](https://img.shields.io/docker/v/n24q02m/better-notion-mcp?label=docker)](https://hub.docker.com/r/n24q02m/better-notion-mcp)
 
-## 🎯 Design Philosophy
+## Design Philosophy
 
 **Mission**: Enable AI agents to work with Notion using **human-like workflows** while maintaining **near-complete API coverage** with **minimal tools and token usage**.
 
@@ -19,7 +19,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 4. **Bulk Operations**: Process multiple items efficiently in one request
 5. **Safe-by-Default**: Only safe operations exposed (no risky schema updates)
 
-## ✨ Key Features
+## Key Features
 
 - **7 Mega Tools**: 75% Official API coverage (21/28 endpoints) with safe operations only
 - **30 Actions**: Multiple actions per tool for comprehensive functionality
@@ -29,7 +29,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 - **Simple Deployment**: npx one-liner or Docker container
 - **Safe-by-Default**: Risky operations (database schema updates) intentionally excluded
 
-## 🚀 Quick Start
+## Quick Start
 
 ### NPX
 
@@ -64,7 +64,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 }
 ```
 
-## 🔑 Get Notion Token
+## Get Notion Token
 
 1. Visit <https://www.notion.so/my-integrations>
 2. Click "New integration"
@@ -72,7 +72,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 4. Copy the **Internal Integration Token**
 5. Share pages/databases with your integration
 
-## 🛠️ 7 Mega Action-Based Tools
+## 7 Mega Action-Based Tools
 
 Each tool supports multiple actions, mapping to 21+ Official Notion API endpoints.
 
@@ -197,7 +197,7 @@ Each tool supports multiple actions, mapping to 21+ Official Notion API endpoint
 - **blocks-to-markdown**: Convert Notion blocks to markdown
   - Example: `{direction: "blocks-to-markdown", content: [{"type": "paragraph", "paragraph": {...}}]}`
 
-## 🔧 Development
+## Development
 
 ### Prerequisites
 
@@ -248,7 +248,7 @@ npm run docker:build
 npm run docker:run
 ```
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
@@ -262,10 +262,10 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-## 📦 Releases
+## Releases
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 
-## 📄 License
+## License
 
 MIT License - See [LICENSE](LICENSE)
