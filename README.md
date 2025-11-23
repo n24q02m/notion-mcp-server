@@ -38,9 +38,12 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
   "mcpServers": {
     "notion": {
       "command": "npx",
-      "args": ["@n24q02m/better-notion-mcp"],
+      "args": [
+        "-y",
+        "@n24q02m/better-notion-mcp"
+      ],
       "env": {
-        "NOTION_TOKEN": "your-notion-token-here"
+        "NOTION_TOKEN": "your_token_here"
       }
     }
   }
@@ -55,10 +58,16 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
     "notion": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-i",
-        "-e", "NOTION_TOKEN=your-notion-token-here",
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "NOTION_TOKEN",
         "n24q02m/better-notion-mcp:latest"
-      ]
+      ],
+      "env": {
+        "NOTION_TOKEN": "your_token_here"
+      }
     }
   }
 }
