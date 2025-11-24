@@ -40,7 +40,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
       "command": "npx",
       "args": [
         "-y",
-        "@n24q02m/better-notion-mcp"
+        "@n24q02m/better-notion-mcp@latest"
       ],
       "env": {
         "NOTION_TOKEN": "your_token_here"
