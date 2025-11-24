@@ -12,16 +12,13 @@ export interface CommentsManageInput {
   page_id?: string
   discussion_id?: string
   action: 'list' | 'create'
-  content?: string  // For create action
+  content?: string // For create action
 }
 
 /**
  * Manage comments (list, create, resolve)
  */
-export async function commentsManage(
-  notion: Client,
-  input: CommentsManageInput
-): Promise<any> {
+export async function commentsManage(notion: Client, input: CommentsManageInput): Promise<any> {
   return withErrorHandling(async () => {
     switch (input.action) {
       case 'list': {
@@ -29,14 +26,12 @@ export async function commentsManage(
           throw new Error('page_id required for list action')
         }
 
-        const comments = await autoPaginate(
-          async (cursor) => {
-            return await (notion.comments as any).list({
-              block_id: input.page_id,
-              start_cursor: cursor
-            })
-          }
-        )
+        const comments = await autoPaginate(async (cursor) => {
+          return await (notion.comments as any).list({
+            block_id: input.page_id,
+            start_cursor: cursor
+          })
+        })
 
         return {
           page_id: input.page_id,

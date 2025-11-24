@@ -18,10 +18,7 @@ export interface BlocksInput {
  * Unified blocks tool
  * Maps to: GET/PATCH/DELETE /v1/blocks/{id} and GET/PATCH /v1/blocks/{id}/children
  */
-export async function blocks(
-  notion: Client,
-  input: BlocksInput
-): Promise<any> {
+export async function blocks(notion: Client, input: BlocksInput): Promise<any> {
   return withErrorHandling(async () => {
     if (!input.block_id) {
       throw new NotionMCPError('block_id required', 'VALIDATION_ERROR', 'Provide block_id')
@@ -41,8 +38,8 @@ export async function blocks(
       }
 
       case 'children': {
-        const blocksList = await autoPaginate(
-          (cursor) => notion.blocks.children.list({
+        const blocksList = await autoPaginate((cursor) =>
+          notion.blocks.children.list({
             block_id: input.block_id,
             start_cursor: cursor,
             page_size: 100
@@ -90,7 +87,17 @@ export async function blocks(
         let updatePayload: any = {}
 
         // Build update based on block type
-        if (['paragraph', 'heading_1', 'heading_2', 'heading_3', 'bulleted_list_item', 'numbered_list_item', 'quote'].includes(blockType)) {
+        if (
+          [
+            'paragraph',
+            'heading_1',
+            'heading_2',
+            'heading_3',
+            'bulleted_list_item',
+            'numbered_list_item',
+            'quote'
+          ].includes(blockType)
+        ) {
           updatePayload[blockType] = {
             rich_text: (newContent as any)[blockType]?.rich_text || []
           }

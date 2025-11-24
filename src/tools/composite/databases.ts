@@ -10,8 +10,16 @@ import { convertToNotionProperties } from '../helpers/properties.js'
 import * as RichText from '../helpers/richtext.js'
 
 export interface DatabasesInput {
-  action: 'create' | 'get' | 'query' | 'create_page' | 'update_page' | 'delete_page' |
-  'create_data_source' | 'update_data_source' | 'update_database'
+  action:
+    | 'create'
+    | 'get'
+    | 'query'
+    | 'create_page'
+    | 'update_page'
+    | 'delete_page'
+    | 'create_data_source'
+    | 'update_data_source'
+    | 'update_database'
 
   // Common params
   database_id?: string
@@ -47,10 +55,7 @@ export interface DatabasesInput {
 /**
  * Unified databases tool - handles all database operations
  */
-export async function databases(
-  notion: Client,
-  input: DatabasesInput
-): Promise<any> {
+export async function databases(notion: Client, input: DatabasesInput): Promise<any> {
   return withErrorHandling(async () => {
     switch (input.action) {
       case 'create':
@@ -208,11 +213,7 @@ async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any
   })
 
   if (!database.data_sources || database.data_sources.length === 0) {
-    throw new NotionMCPError(
-      'No data sources found in database',
-      'VALIDATION_ERROR',
-      'Database has no data sources'
-    )
+    throw new NotionMCPError('No data sources found in database', 'VALIDATION_ERROR', 'Database has no data sources')
   }
 
   const dataSourceId = database.data_sources[0].id
@@ -226,14 +227,12 @@ async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any
     })
 
     const textProps = Object.entries(dataSource.properties || {})
-      .filter(([_, prop]: [string, any]) =>
-        ['title', 'rich_text'].includes(prop.type)
-      )
+      .filter(([_, prop]: [string, any]) => ['title', 'rich_text'].includes(prop.type))
       .map(([name]) => name)
 
     if (textProps.length > 0) {
       filter = {
-        or: textProps.map(propName => ({
+        or: textProps.map((propName) => ({
           property: propName,
           rich_text: { contains: input.search }
         }))
@@ -246,20 +245,18 @@ async function queryDatabase(notion: Client, input: DatabasesInput): Promise<any
   if (input.sorts) queryParams.sorts = input.sorts
 
   // Fetch with pagination
-  const allResults = await autoPaginate(
-    async (cursor) => {
-      const response: any = await (notion as any).dataSources.query({
-        ...queryParams,
-        start_cursor: cursor,
-        page_size: 100
-      })
-      return {
-        results: response.results,
-        next_cursor: response.next_cursor,
-        has_more: response.has_more
-      }
+  const allResults = await autoPaginate(async (cursor) => {
+    const response: any = await (notion as any).dataSources.query({
+      ...queryParams,
+      start_cursor: cursor,
+      page_size: 100
+    })
+    return {
+      results: response.results,
+      next_cursor: response.next_cursor,
+      has_more: response.has_more
     }
-  )
+  })
 
   // Limit results if specified
   const results = input.limit ? allResults.slice(0, input.limit) : allResults
@@ -320,11 +317,7 @@ async function createDatabasePages(notion: Client, input: DatabasesInput): Promi
   })
 
   if (!database.data_sources || database.data_sources.length === 0) {
-    throw new NotionMCPError(
-      'No data sources found in database',
-      'VALIDATION_ERROR',
-      'Database has no data sources'
-    )
+    throw new NotionMCPError('No data sources found in database', 'VALIDATION_ERROR', 'Database has no data sources')
   }
 
   const dataSourceId = database.data_sources[0].id
@@ -366,8 +359,9 @@ async function createDatabasePages(notion: Client, input: DatabasesInput): Promi
  * Maps to: Multiple PATCH /v1/pages/{id}
  */
 async function updateDatabasePages(notion: Client, input: DatabasesInput): Promise<any> {
-  const items = input.pages || (input.page_id && input.page_properties ?
-    [{ page_id: input.page_id, properties: input.page_properties }] : [])
+  const items =
+    input.pages ||
+    (input.page_id && input.page_properties ? [{ page_id: input.page_id, properties: input.page_properties }] : [])
 
   if (items.length === 0) {
     throw new NotionMCPError('pages or page_id+page_properties required', 'VALIDATION_ERROR', 'Provide items to update')
@@ -405,8 +399,10 @@ async function updateDatabasePages(notion: Client, input: DatabasesInput): Promi
  * Maps to: Multiple PATCH /v1/pages/{id} with archived: true
  */
 async function deleteDatabasePages(notion: Client, input: DatabasesInput): Promise<any> {
-  const pageIds = input.page_ids || (input.page_id ? [input.page_id] : []) ||
-    (input.pages ? input.pages.map(p => p.page_id!).filter(Boolean) : [])
+  const pageIds =
+    input.page_ids ||
+    (input.page_id ? [input.page_id] : []) ||
+    (input.pages ? input.pages.map((p) => p.page_id!).filter(Boolean) : [])
 
   if (pageIds.length === 0) {
     throw new NotionMCPError('page_id or page_ids required', 'VALIDATION_ERROR', 'Provide page IDs to delete')

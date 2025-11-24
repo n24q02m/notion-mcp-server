@@ -34,10 +34,7 @@ export interface PagesInput {
 /**
  * Unified pages tool - handles all page operations
  */
-export async function pages(
-  notion: Client,
-  input: PagesInput
-): Promise<any> {
+export async function pages(notion: Client, input: PagesInput): Promise<any> {
   return withErrorHandling(async () => {
     switch (input.action) {
       case 'create':
@@ -141,8 +138,8 @@ async function getPage(notion: Client, input: PagesInput): Promise<any> {
   const page: any = await notion.pages.retrieve({ page_id: input.page_id })
 
   // Get all blocks with auto-pagination
-  const blocks = await autoPaginate(
-    (cursor) => notion.blocks.children.list({
+  const blocks = await autoPaginate((cursor) =>
+    notion.blocks.children.list({
       block_id: input.page_id!,
       start_cursor: cursor,
       page_size: 100
@@ -233,8 +230,8 @@ async function updatePage(notion: Client, input: PagesInput): Promise<any> {
   if (input.content || input.append_content || input.prepend_content) {
     if (input.content) {
       // Replace all content
-      const existingBlocks = await autoPaginate(
-        (cursor) => notion.blocks.children.list({
+      const existingBlocks = await autoPaginate((cursor) =>
+        notion.blocks.children.list({
           block_id: input.page_id!,
           start_cursor: cursor,
           page_size: 100
@@ -261,8 +258,8 @@ async function updatePage(notion: Client, input: PagesInput): Promise<any> {
         })
       }
     } else if (input.prepend_content) {
-      const existingBlocks = await autoPaginate(
-        (cursor) => notion.blocks.children.list({
+      const existingBlocks = await autoPaginate((cursor) =>
+        notion.blocks.children.list({
           block_id: input.page_id!,
           start_cursor: cursor,
           page_size: 1
@@ -346,8 +343,8 @@ async function duplicatePage(notion: Client, input: PagesInput): Promise<any> {
     const originalPage: any = await notion.pages.retrieve({ page_id: pageId })
 
     // Get original content
-    const originalBlocks = await autoPaginate(
-      (cursor) => notion.blocks.children.list({
+    const originalBlocks = await autoPaginate((cursor) =>
+      notion.blocks.children.list({
         block_id: pageId,
         start_cursor: cursor,
         page_size: 100

@@ -95,7 +95,17 @@ Examples:
       properties: {
         action: {
           type: 'string',
-          enum: ['create', 'get', 'query', 'create_page', 'update_page', 'delete_page', 'create_data_source', 'update_data_source', 'update_database'],
+          enum: [
+            'create',
+            'get',
+            'query',
+            'create_page',
+            'update_page',
+            'delete_page',
+            'create_data_source',
+            'update_data_source',
+            'update_database'
+          ],
           description: 'Action to perform'
         },
         database_id: { type: 'string', description: 'Database ID (container)' },
@@ -292,10 +302,12 @@ export function registerTools(server: Server, notionToken: string) {
 
     if (!args) {
       return {
-        content: [{
-          type: 'text',
-          text: 'Error: No arguments provided'
-        }],
+        content: [
+          {
+            type: 'text',
+            text: 'Error: No arguments provided'
+          }
+        ],
         isError: true
       }
     }
@@ -329,30 +341,31 @@ export function registerTools(server: Server, notionToken: string) {
           throw new NotionMCPError(
             `Unknown tool: ${name}`,
             'UNKNOWN_TOOL',
-            `Available tools: ${TOOLS.map(t => t.name).join(', ')}`
+            `Available tools: ${TOOLS.map((t) => t.name).join(', ')}`
           )
       }
 
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(result, null, 2)
-        }]
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }
+        ]
       }
     } catch (error) {
-      const enhancedError = error instanceof NotionMCPError
-        ? error
-        : new NotionMCPError(
-          (error as Error).message,
-          'TOOL_ERROR',
-          'Check the error details and try again'
-        )
+      const enhancedError =
+        error instanceof NotionMCPError
+          ? error
+          : new NotionMCPError((error as Error).message, 'TOOL_ERROR', 'Check the error details and try again')
 
       return {
-        content: [{
-          type: 'text',
-          text: aiReadableMessage(enhancedError)
-        }],
+        content: [
+          {
+            type: 'text',
+            text: aiReadableMessage(enhancedError)
+          }
+        ],
         isError: true
       }
     }

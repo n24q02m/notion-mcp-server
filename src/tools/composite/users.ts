@@ -16,15 +16,12 @@ export interface UsersInput {
  * Unified users tool
  * Maps to: GET /v1/users and GET /v1/users/{id} and GET /v1/users/me
  */
-export async function users(
-  notion: Client,
-  input: UsersInput
-): Promise<any> {
+export async function users(notion: Client, input: UsersInput): Promise<any> {
   return withErrorHandling(async () => {
     switch (input.action) {
       case 'list': {
-        const usersList = await autoPaginate(
-          (cursor) => notion.users.list({
+        const usersList = await autoPaginate((cursor) =>
+          notion.users.list({
             start_cursor: cursor,
             page_size: 100
           })

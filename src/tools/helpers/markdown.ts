@@ -184,7 +184,9 @@ export function parseRichText(text: string): RichText[] {
           type: 'text',
           text: { content: linkText, link: { url: linkUrl } },
           annotations: {
-            bold, italic, strikethrough,
+            bold,
+            italic,
+            strikethrough,
             underline: false,
             code,
             color: 'default'
@@ -251,26 +253,28 @@ export function parseRichText(text: string): RichText[] {
 function richTextToMarkdown(richText: RichText[]): string {
   if (!richText || !Array.isArray(richText)) return ''
 
-  return richText.map(rt => {
-    if (!rt || !rt.text) return ''
+  return richText
+    .map((rt) => {
+      if (!rt || !rt.text) return ''
 
-    let text = rt.text.content || ''
-    const annotations = rt.annotations || {}
+      let text = rt.text.content || ''
+      const annotations = rt.annotations || {}
 
-    if (annotations.bold) text = `**${text}**`
-    if (annotations.italic) text = `*${text}*`
-    if (annotations.code) text = `\`${text}\``
-    if (annotations.strikethrough) text = `~~${text}~~`
-    if (rt.text.link) text = `[${text}](${rt.text.link.url})`
-    return text
-  }).join('')
+      if (annotations.bold) text = `**${text}**`
+      if (annotations.italic) text = `*${text}*`
+      if (annotations.code) text = `\`${text}\``
+      if (annotations.strikethrough) text = `~~${text}~~`
+      if (rt.text.link) text = `[${text}](${rt.text.link.url})`
+      return text
+    })
+    .join('')
 }
 
 /**
  * Extract plain text from rich text
  */
 export function extractPlainText(richText: RichText[]): string {
-  return richText.map(rt => rt.text.content).join('')
+  return richText.map((rt) => rt.text.content).join('')
 }
 
 // Helper creators

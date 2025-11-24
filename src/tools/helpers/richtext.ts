@@ -21,17 +21,7 @@ export interface RichTextItem {
   href?: string | null
 }
 
-export type Color =
-  | 'default'
-  | 'gray'
-  | 'brown'
-  | 'orange'
-  | 'yellow'
-  | 'green'
-  | 'blue'
-  | 'purple'
-  | 'pink'
-  | 'red'
+export type Color = 'default' | 'gray' | 'brown' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'red'
 
 /**
  * Create simple rich text
@@ -145,7 +135,7 @@ export function formatText(
  * Extract plain text from rich text array
  */
 export function extractPlainText(richText: RichTextItem[]): string {
-  return richText.map(rt => rt.text.content).join('')
+  return richText.map((rt) => rt.text.content).join('')
 }
 
 /**
@@ -179,7 +169,7 @@ export function mergeRichText(...items: RichTextItem[]): RichTextItem[] {
  * Convert string array to rich text
  */
 export function fromStrings(strings: string[]): RichTextItem[] {
-  return strings.map(s => text(s))
+  return strings.map((s) => text(s))
 }
 
 /**

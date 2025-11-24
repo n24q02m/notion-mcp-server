@@ -60,12 +60,19 @@ function handleNotionError(error: any): NotionMCPError {
   const message = error.message || 'Unknown Notion API error'
 
   // Log full error for debugging
-  console.error('Notion API Error:', JSON.stringify({
-    code,
-    message,
-    body: error.body,
-    status: error.status
-  }, null, 2))
+  console.error(
+    'Notion API Error:',
+    JSON.stringify(
+      {
+        code,
+        message,
+        body: error.body,
+        status: error.status
+      },
+      null,
+      2
+    )
+  )
 
   switch (code) {
     case 'unauthorized':
@@ -119,11 +126,7 @@ function handleNotionError(error: any): NotionMCPError {
       )
 
     default:
-      return new NotionMCPError(
-        message,
-        code.toUpperCase(),
-        'Check the Notion API documentation for this error code'
-      )
+      return new NotionMCPError(message, code.toUpperCase(), 'Check the Notion API documentation for this error code')
   }
 }
 
@@ -217,12 +220,7 @@ export async function retryWithBackoff<T>(
     backoffMultiplier?: number
   } = {}
 ): Promise<T> {
-  const {
-    maxRetries = 3,
-    initialDelay = 1000,
-    maxDelay = 10000,
-    backoffMultiplier = 2
-  } = options
+  const { maxRetries = 3, initialDelay = 1000, maxDelay = 10000, backoffMultiplier = 2 } = options
 
   let lastError: any
   let delay = initialDelay
@@ -244,7 +242,7 @@ export async function retryWithBackoff<T>(
       }
 
       // Wait with exponential backoff
-      await new Promise(resolve => setTimeout(resolve, delay))
+      await new Promise((resolve) => globalThis.setTimeout(resolve, delay))
       delay = Math.min(delay * backoffMultiplier, maxDelay)
     }
   }

@@ -14,9 +14,7 @@ export interface ContentConvertInput {
 /**
  * Convert content between formats
  */
-export async function contentConvert(
-  input: ContentConvertInput
-): Promise<any> {
+export async function contentConvert(input: ContentConvertInput): Promise<any> {
   return withErrorHandling(async () => {
     switch (input.direction) {
       case 'markdown-to-blocks': {
@@ -37,7 +35,7 @@ export async function contentConvert(
         if (typeof content === 'string') {
           try {
             content = JSON.parse(content)
-          } catch (e) {
+          } catch {
             throw new Error('Content must be a valid JSON array or array object for blocks-to-markdown')
           }
         }

@@ -28,10 +28,7 @@ export interface WorkspaceInput {
  * Unified workspace tool
  * Maps to: GET /v1/users/me and POST /v1/search
  */
-export async function workspace(
-  notion: Client,
-  input: WorkspaceInput
-): Promise<any> {
+export async function workspace(notion: Client, input: WorkspaceInput): Promise<any> {
   return withErrorHandling(async () => {
     switch (input.action) {
       case 'info': {
@@ -72,8 +69,8 @@ export async function workspace(
         }
 
         // Fetch results with pagination
-        const allResults = await autoPaginate(
-          (cursor) => notion.search({
+        const allResults = await autoPaginate((cursor) =>
+          notion.search({
             ...searchParams,
             start_cursor: cursor,
             page_size: 100
@@ -89,9 +86,12 @@ export async function workspace(
           results: results.map((item: any) => ({
             id: item.id,
             object: item.object,
-            title: item.object === 'page'
-              ? (item.properties?.title?.title?.[0]?.plain_text || item.properties?.Name?.title?.[0]?.plain_text || 'Untitled')
-              : (item.title?.[0]?.plain_text || 'Untitled'),
+            title:
+              item.object === 'page'
+                ? item.properties?.title?.title?.[0]?.plain_text ||
+                  item.properties?.Name?.title?.[0]?.plain_text ||
+                  'Untitled'
+                : item.title?.[0]?.plain_text || 'Untitled',
             url: item.url,
             last_edited_time: item.last_edited_time
           }))

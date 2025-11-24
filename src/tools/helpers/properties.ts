@@ -9,9 +9,7 @@ import * as RichText from './richtext.js'
  * Convert simple property values to Notion API format
  * Handles auto-detection of property types and conversion
  */
-export function convertToNotionProperties(
-  properties: Record<string, any>
-): Record<string, any> {
+export function convertToNotionProperties(properties: Record<string, any>): Record<string, any> {
   const converted: Record<string, any> = {}
 
   for (const [key, value] of Object.entries(properties)) {
@@ -40,7 +38,7 @@ export function convertToNotionProperties(
       if (value.length > 0 && typeof value[0] === 'string') {
         // Assume multi_select
         converted[key] = {
-          multi_select: value.map(v => ({ name: v }))
+          multi_select: value.map((v) => ({ name: v }))
         }
       } else {
         converted[key] = value

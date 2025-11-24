@@ -10,8 +10,8 @@ export interface PaginatedResponse<T> {
 }
 
 export interface PaginationOptions {
-  maxPages?: number  // Max pages to fetch (0 = unlimited)
-  pageSize?: number  // Items per page (default: 100)
+  maxPages?: number // Max pages to fetch (0 = unlimited)
+  pageSize?: number // Items per page (default: 100)
 }
 
 /**
@@ -95,9 +95,7 @@ export async function processBatches<T, R>(
 
   for (let i = 0; i < batches.length; i += concurrency) {
     const currentBatches = batches.slice(i, i + concurrency)
-    const batchPromises = currentBatches.map(batch =>
-      Promise.all(batch.map(processFn))
-    )
+    const batchPromises = currentBatches.map((batch) => Promise.all(batch.map(processFn)))
     const batchResults = await Promise.all(batchPromises)
     results.push(...batchResults.flat())
   }

@@ -24,10 +24,7 @@ export interface SearchSmartInput {
 /**
  * Smart search with context-aware ranking
  */
-export async function searchSmart(
-  notion: Client,
-  input: SearchSmartInput
-): Promise<any> {
+export async function searchSmart(notion: Client, input: SearchSmartInput): Promise<any> {
   return withErrorHandling(async () => {
     const searchParams: any = {
       query: input.query,
@@ -86,9 +83,7 @@ export async function searchSmart(
 function extractTitle(page: any): string {
   if (!page.properties) return 'Untitled'
 
-  const titleProp = Object.values(page.properties).find(
-    (prop: any) => prop.type === 'title'
-  ) as any
+  const titleProp = Object.values(page.properties).find((prop: any) => prop.type === 'title') as any
 
   if (titleProp && titleProp.title && titleProp.title.length > 0) {
     return RichText.extractPlainText(titleProp.title)

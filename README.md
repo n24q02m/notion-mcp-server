@@ -1,47 +1,47 @@
 # Better Notion MCP
 
-**Composite MCP Server for Notion - Human-Like Workflows for AI Agents**
+**A Better MCP Server for Notion - Markdown-First, Token-Efficient, Human-Centric Workflows for AI Agents**
 
 [![GitHub stars](https://img.shields.io/github/stars/n24q02m/better-notion-mcp)](https://github.com/n24q02m/better-notion-mcp/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://badge.fury.io/js/%40n24q02m%2Fbetter-notion-mcp.svg)](https://www.npmjs.com/package/@n24q02m/better-notion-mcp)
 [![Docker](https://img.shields.io/docker/v/n24q02m/better-notion-mcp?label=docker)](https://hub.docker.com/r/n24q02m/better-notion-mcp)
 
-## Design Philosophy
+## Overview
 
-**Mission**: Enable AI agents to work with Notion using **human-like workflows** while maintaining **near-complete API coverage** with **minimal tools and token usage**.
+This MCP server provides **7 mega action-based tools** that consolidate Notion's 28+ REST API endpoints into intuitive, composite operations optimized for AI agents.
 
-This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega action-based tools** that mirror how humans actually work with Notion:
+### Key Advantages
 
-1. **Action-Based Design**: Each tool supports multiple related actions (e.g., pages tool: create, get, update, archive)
-2. **Markdown-First**: Natural language content format optimized for AI understanding
-3. **Auto-Pagination**: Transparent handling of large datasets
-4. **Bulk Operations**: Process multiple items efficiently in one request
-5. **Safe-by-Default**: Only safe operations exposed (no risky schema updates)
+| Feature | Better Notion MCP | Standard Approach |
+|---------|------------------|-------------------|
+| **Content Format** | Markdown (human-readable) | Raw JSON blocks (verbose) |
+| **Operations** | Composite actions (create page + content in 1 call) | Atomic endpoints (2+ calls) |
+| **Pagination** | Automatic (transparent) | Manual cursor management |
+| **Bulk Operations** | Native batch support | Loop through items manually |
+| **Tool Count** | 7 mega tools (action-based) | 28+ individual endpoints |
+| **Token Efficiency** | Optimized for AI context | Standard API responses |
 
-## Key Features
+### Design Principles
 
-- **7 Mega Tools**: 75% Official API coverage (21/28 endpoints) with safe operations only
-- **30 Actions**: Multiple actions per tool for comprehensive functionality
-- **Markdown Support**: Write and read Notion content in markdown format
-- **Auto-Pagination**: Automatically fetch all results without cursor management
-- **Bulk Operations**: Create/update/delete multiple items in single requests
-- **Simple Deployment**: npx one-liner or Docker container
-- **Safe-by-Default**: Risky operations (database schema updates) intentionally excluded
+- **Markdown-First**: Natural language content format for AI understanding
+- **Composite Actions**: Combine related operations (e.g., create page with title + content + properties in one call)
+- **Auto-Pagination**: Transparent handling of large datasets without cursor management
+- **Bulk Operations**: Process multiple items efficiently in single requests
+- **Safe-by-Default**: Risky operations (database schema type changes) intentionally excluded
+
+---
 
 ## Quick Start
 
-### NPX
+### NPX (Recommended)
 
 ```json
 {
   "mcpServers": {
     "notion": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@n24q02m/better-notion-mcp@latest"
-      ],
+      "args": ["-y", "@n24q02m/better-notion-mcp@latest"],
       "env": {
         "NOTION_TOKEN": "your_token_here"
       }
@@ -57,14 +57,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
   "mcpServers": {
     "notion": {
       "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "NOTION_TOKEN",
-        "n24q02m/better-notion-mcp:latest"
-      ],
+      "args": ["run", "-i", "--rm", "-e", "NOTION_TOKEN", "n24q02m/better-notion-mcp:latest"],
       "env": {
         "NOTION_TOKEN": "your_token_here"
       }
@@ -73,7 +66,7 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 }
 ```
 
-## Get Notion Token
+### Get Notion Token
 
 1. Visit <https://www.notion.so/my-integrations>
 2. Click "New integration"
@@ -81,137 +74,76 @@ This MCP server transforms Notion's 28+ atomic REST API endpoints into **7 mega 
 4. Copy the **Internal Integration Token**
 5. Share pages/databases with your integration
 
-## 7 Mega Action-Based Tools
+---
 
-Each tool supports multiple actions, mapping to 21+ Official Notion API endpoints.
+## 7 Mega Tools (30+ Actions)
 
-### 1. **`pages`** - Complete page lifecycle (6 actions → 5 API endpoints)
+### 1. `pages` - Complete page lifecycle
 
 **Actions**: `create`, `get`, `update`, `archive`, `restore`, `duplicate`
 
 - **create**: Create page with title + markdown content + properties in one call
-  - Maps to: `POST /v1/pages` + `PATCH /v1/blocks/{id}/children`
-  - Example: `{action: "create", title: "My Page", parent_id: "xxx", content: "# Hello\nMarkdown here"}`
-
 - **get**: Retrieve full page as markdown with all properties
-  - Maps to: `GET /v1/pages/{id}` + `GET /v1/blocks/{id}/children`
-  - Example: `{action: "get", page_id: "xxx"}`
-
 - **update**: Update title, properties, and/or content (replace/append/prepend)
-  - Maps to: `PATCH /v1/pages/{id}` + `PATCH /v1/blocks/{id}/children`
-  - Example: `{action: "update", page_id: "xxx", title: "New Title", append_content: "\n## New section"}`
-
 - **archive/restore**: Bulk archive or restore multiple pages
-  - Maps to: Multiple `PATCH /v1/pages/{id}` calls
-  - Example: `{action: "archive", page_ids: ["xxx", "yyy"]}`
-
 - **duplicate**: Duplicate a page with all content
-  - Example: `{action: "duplicate", page_id: "xxx"}`
 
-### 2. **`databases`** - Database management (9 actions → 3+ API endpoints)
+### 2. `databases` - Database operations
 
 **Actions**: `create`, `get`, `query`, `create_page`, `update_page`, `delete_page`, `create_data_source`, `update_data_source`, `update_database`
 
-**ARCHITECTURE NOTE:** Notion databases now support multiple data sources. A database is a container that holds one or more data sources. Each data source has its own schema (properties) and rows (pages).
-
 - **create**: Create database with initial data source
-  - Maps to: `POST /v1/databases` (API 2025-09-03)
-  - Example: `{action: "create", parent_id: "xxx", title: "Tasks", properties: {Status: {select: {...}}}}`
-
 - **get**: Retrieve database schema and structure
-  - Maps to: `GET /v1/databases/{id}` + auto-fetch data_source_id
-  - Example: `{action: "get", database_id: "xxx"}`
-
 - **query**: Query database with filters/sorts + smart search
-  - Maps to: `POST /v1/databases/{id}/query`
-  - Example: `{action: "query", database_id: "xxx", search: "project", limit: 10}`
-
-- **create_page**: Create new database items (bulk)
-  - Maps to: `POST /v1/pages`
-  - Example: `{action: "create_page", database_id: "xxx", pages: [{properties: {Name: "Task 1", Status: "Todo"}}]}`
-
-- **update_page**: Update database items (bulk)
-  - Maps to: `PATCH /v1/pages`
-  - Example: `{action: "update_page", page_id: "yyy", page_properties: {Status: "Done"}}`
-
-- **delete_page**: Delete database items (bulk)
-  - Maps to: `DELETE /v1/pages` (via batch)
-  - Example: `{action: "delete_page", page_ids: ["yyy", "zzz"]}`
-
-- **create_data_source**: Add second data source to database
-  - Maps to: `POST /v1/data_sources`
-  - Example: `{action: "create_data_source", database_id: "xxx", title: "Archive", properties: {...}}`
-
+- **create_page**: Create new database items (supports bulk)
+- **update_page**: Update database items (supports bulk)
+- **delete_page**: Delete database items (supports bulk)
+- **create_data_source**: Add additional data source to database
 - **update_data_source**: Update data source schema
-  - Maps to: `PATCH /v1/data_sources/{id}`
-  - Example: `{action: "update_data_source", data_source_id: "yyy", properties: {NewField: {checkbox: {}}}}`
-
 - **update_database**: Update database container (title, icon, cover, move)
-  - Maps to: `PATCH /v1/databases/{id}`
-  - Example: `{action: "update_database", database_id: "xxx", title: "New Title", icon: "📊"}`
 
-### 3. **`blocks`** - Granular block editing (5 actions → 5 API endpoints)
+### 3. `blocks` - Granular block editing
 
 **Actions**: `get`, `children`, `append`, `update`, `delete`
 
-- Maps to: `GET/PATCH/DELETE /v1/blocks/{id}` + `GET/PATCH /v1/blocks/{id}/children`
-- Example: `{action: "append", block_id: "xxx", content: "## New section\nContent here"}`
+Fine-grained content manipulation at block level for precise edits within pages.
 
-### 4. **`users`** - User management (4 actions → 3+ API endpoints)
+### 4. `users` - User management
 
 **Actions**: `list`, `get`, `me`, `from_workspace`
 
 - **list**: List all users in workspace (requires permission)
-  - Maps to: `GET /v1/users`
-  - Example: `{action: "list"}`
-
 - **get**: Get specific user by ID
-  - Maps to: `GET /v1/users/{id}`
-  - Example: `{action: "get", user_id: "xxx"}`
-
 - **me**: Get current bot/integration info
-  - Maps to: `GET /v1/users/me`
-  - Example: `{action: "me"}`
-
 - **from_workspace**: Extract users from accessible pages (permission bypass)
-  - Alternative method when users.list() permission is denied
-  - Example: `{action: "from_workspace"}`
 
-### 5. **`workspace`** - Workspace operations (2 actions → 2 API endpoints)
+### 5. `workspace` - Workspace operations
 
 **Actions**: `info`, `search`
 
 - **info**: Get bot and workspace information
-  - Maps to: `GET /v1/users/me`
-  - Example: `{action: "info"}`
-
 - **search**: Smart workspace-wide search with filters
-  - Maps to: `POST /v1/search`
-  - Example: `{action: "search", query: "project", filter: {object: "page"}, limit: 10}`
 
-### 6. **`comments`** - Comment operations (2 actions → 2 API endpoints)
+### 6. `comments` - Comment operations
 
 **Actions**: `list`, `create`
 
-- Maps to: `GET /v1/comments`, `POST /v1/comments`
-- Example: `{action: "list", page_id: "xxx"}` or `{action: "create", page_id: "xxx", content: "Great!"}`
+List and create comments on pages with threading support.
 
-### 7. **`content_convert`** - Markdown ↔ Notion blocks utility (2 directions)
+### 7. `content_convert` - Format conversion utility
 
-**Utility tool** for converting between formats (not a direct API call)
+**Directions**: `markdown-to-blocks`, `blocks-to-markdown`
 
-- **markdown-to-blocks**: Parse markdown into Notion block structure
-  - Example: `{direction: "markdown-to-blocks", content: "# Hello\n\nWorld"}`
+Convert between human-readable Markdown and Notion's block format for advanced use cases.
 
-- **blocks-to-markdown**: Convert Notion blocks to markdown
-  - Example: `{direction: "blocks-to-markdown", content: [{"type": "paragraph", "paragraph": {...}}]}`
+---
 
 ## Development
 
 ### Prerequisites
 
-- Node.js 22+ (uses native fetch)
-- npm 7+
+- Node.js 22+
+- npm 10+
 - Notion Integration with appropriate permissions
 
 ### Build from Source
@@ -221,6 +153,21 @@ git clone https://github.com/n24q02m/better-notion-mcp
 cd better-notion-mcp
 npm install
 npm run build
+```
+
+### Available Scripts
+
+```bash
+npm run dev          # Development with watch mode
+npm run build        # Build for production
+npm test             # Run tests
+npm run test:watch   # Watch mode
+npm run lint         # Check code style
+npm run lint:fix     # Fix code style issues
+npm run format       # Format code with Prettier
+npm run format:check # Check code formatting
+npm run type-check   # TypeScript type checking
+npm run check        # Run all checks (type-check + lint + format:check)
 ```
 
 ### Local Development
@@ -234,19 +181,6 @@ export NOTION_TOKEN=secret_xxx
 npm run dev
 ```
 
-### Run Tests
-
-```bash
-# Run all tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# With coverage
-npm run test:coverage
-```
-
 ### Docker Development
 
 ```bash
@@ -257,24 +191,27 @@ npm run docker:build
 npm run docker:run
 ```
 
+---
+
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ### Quick Start for Contributors
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Make your changes following our [commit conventions](CONTRIBUTING.md#commit-convention)
-4. Run tests: `npm test`
-5. Submit a pull request
+4. Run checks: `npm run check`
+5. Run tests: `npm test`
+6. Submit a pull request
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-## Releases
-
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+---
 
 ## License
 
 MIT License - See [LICENSE](LICENSE)
+
+---
+
+**Star this repo if you find it useful! ⭐**
